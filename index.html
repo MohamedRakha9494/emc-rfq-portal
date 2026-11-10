@@ -743,10 +743,10 @@ async function vCodes(el, ttl) {
   const projs = await api.get('rfq_projects?select=id,customer_id,project_name&order=project_name');
   const lim = Object.fromEntries((await api.rpc('rfq_admin_access_code_limits', {})).map((x) => [x.code_id, x]));
   const rows = (await api.rpc('rfq_admin_list_access_codes', {}, 'rows')).map((r) => ({ ...r, max_devices: lim[r.code_id]?.max_devices ?? 3 }));
-  const pre = cos.find((c) => c.id === S.params.id)?.id || cos[0]?.id;
+  const pre = cos.find((c) => c.id === S.params.id)?.id || '';
   el.innerHTML = `<section class="panel"><div class="panel-head"><h2>${esc(t('newCode'))}</h2></div>
     <form id="kf" class="grid2" novalidate>
-      <label class="f" for="k1">${esc(t('customer'))}<select id="k1">${cos.map((c) => `<option value="${esc(c.id)}" ${c.id === pre ? 'selected' : ''}>${esc(c.company_name)}</option>`).join('')}</select></label>
+      <label class="f" for="k1">${esc(t('customer'))}<select id="k1"><option value="" disabled ${pre ? '' : 'selected'}>— ${S.lang === 'ar' ? 'اختر الشركة' : 'Choose the company'} —</option>${cos.map((c) => `<option value="${esc(c.id)}" ${c.id === pre ? 'selected' : ''}>${esc(c.company_name)}</option>`).join('')}</select></label>
       <div class="f"><span>${esc(t('scopeL'))}</span><div class="opts"><label><input type="radio" name="ks" value="company" checked> ${esc(t('scopeCompany'))}</label><label><input type="radio" name="ks" value="project"> ${esc(t('scopeProject'))}</label></div></div>
       <label class="f" for="k2">${esc(t('project'))}<select id="k2" disabled></select></label>
       <label class="f" for="k3">${esc(t('expiresOn'))}<input id="k3" type="date" value="${dayInput(30)}" min="${dayInput(1)}" max="${dayInput(365)}"></label>
@@ -763,10 +763,15 @@ async function vCodes(el, ttl) {
   const scope = () => el.querySelector('[name=ks]:checked').value;
   fillProjects(); $('#k1').onchange = fillProjects; el.querySelectorAll('[name=ks]').forEach((r) => r.onchange = () => { $('#k2').disabled = scope() !== 'project'; });
   $('#kf').onsubmit = async (e) => { e.preventDefault();
-    try { const company = $('#k1').selectedOptions[0].textContent; const proj = scope() === 'project' ? $('#k2').value : null;
+    try { if (!$('#k1').value) throw new Error(S.lang === 'ar' ? 'اختر الشركة أولًا.' : 'Choose the company first.');
+      const company = $('#k1').selectedOptions[0].textContent; const proj = scope() === 'project' ? $('#k2').value : null;
       if (scope() === 'project' && !proj) throw new Error(t('noProjectForCompany'));
       const exp = endOfDay($('#k3').value);
       const maxd = parseInt($('#k5').value, 10); if (!(maxd >= 1 && maxd <= 50)) throw new Error(pick(msgOf('RFQ_ACCESS_CODE_MAX_DEVICES')));
+      const where = proj ? projs.find((p) => p.id === proj).project_name : t('scopeCompany');
+      const ok = await new Promise((res) => dialog(`<h2>${S.lang === 'ar' ? 'تأكيد إنشاء الكود' : 'Confirm the new code'}</h2><p>${S.lang === 'ar' ? 'الكود ده هيفتح بيانات الشركة دي بس:' : 'This code will open the data of this company only:'}</p><p style="font-size:1.4em"><b id="kcco">${esc(company)}</b></p><p class="small">${esc(where)}</p><div class="row"><button class="btn primary" id="kcy">${esc(t('createCode'))}</button><button class="btn" id="kcn" data-close>${esc(t('cancel'))}</button></div>`,
+        (d) => { $('#kcy', d).onclick = () => { d.remove(); res(true); }; $('#kcn', d).addEventListener('click', () => res(false)); }));
+      if (!ok) return;
       const r = (await api.rpc('rfq_admin_create_access_code', { p_customer_id: $('#k1').value, p_project_id: proj, p_expires_at: tsArg(exp), p_label: $('#k4').value.trim() || null }, 'rows'))[0];
       if (maxd !== 3) await api.rpc('rfq_admin_set_access_code_max_devices', { p_code_id: r.code_id, p_max_devices: maxd });
       await vCodes(el, ttl); showNewCode(r, company, proj ? projs.find((p) => p.id === proj).project_name : t('scopeCompany'), exp, maxd);
