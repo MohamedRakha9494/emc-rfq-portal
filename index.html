@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://nhcsoruwmccmlcpnsecz.supabase.co; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+</head>
+<body>
+<title>EMC Technical RFQ Portal</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: an engineering work-order console. A fixed start-side rail (RTL in Arabic), a calm work surface,
+   status encoded as coloured chips. Palette from cold-chain plant rooms: deep pipe-blue ink, frost surfaces,
+   glacier-teal for action, amber for "needs attention". */
+:root {
+  --bg: #eef3f4; --surface: #ffffff; --surface-2: #f6f9fa; --ink: #0d2430; --ink-2: #47606b; --line: #d5e0e4;
+  --accent: #0a6f6b; --accent-ink: #ffffff; --accent-soft: #dff1ef;
+  --warn: #9a5b00; --warn-soft: #fdf1dc; --bad: #b0281e; --bad-soft: #fbe6e3; --ok: #17704a; --ok-soft: #e2f3ea;
+  --info: #24548f; --info-soft: #e4edf8; --rail: #0d2430; --rail-ink: #cfe0e5; --rail-active: #17414f;
+  --font: "IBM Plex Sans Arabic", "Segoe UI", "Noto Sans Arabic", Tahoma, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 8px; --shadow: 0 1px 2px rgba(13,36,48,.06), 0 4px 16px rgba(13,36,48,.06);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0b161b; --surface: #112128; --surface-2: #0e1c22; --ink: #e2edf0; --ink-2: #9db3bb; --line: #23394240;
+  --accent: #3cb7ad; --accent-ink: #062320; --accent-soft: #123a37;
+  --warn: #f0b04a; --warn-soft: #3a2a0d; --bad: #f08a80; --bad-soft: #3d1715; --ok: #5fd39c; --ok-soft: #10301f;
+  --info: #8fb8ee; --info-soft: #14263c; --rail: #07111a; --rail-ink: #b9cdd3; --rail-active: #15303b;
+  --shadow: 0 1px 2px rgba(0,0,0,.3); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0b161b; --surface: #112128; --surface-2: #0e1c22; --ink: #e2edf0; --ink-2: #9db3bb; --line: #23394240;
+  --accent: #3cb7ad; --accent-ink: #062320; --accent-soft: #123a37;
+  --warn: #f0b04a; --warn-soft: #3a2a0d; --bad: #f08a80; --bad-soft: #3d1715; --ok: #5fd39c; --ok-soft: #10301f;
+  --info: #8fb8ee; --info-soft: #14263c; --rail: #07111a; --rail-ink: #b9cdd3; --rail-active: #15303b;
+  --shadow: 0 1px 2px rgba(0,0,0,.3); color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--font); margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+h1, h2, h3 { text-wrap: balance; margin: 0; line-height: 1.3; }
+h1 { font-size: 1.45rem; font-weight: 700; } h2 { font-size: 1.12rem; font-weight: 600; } h3 { font-size: .98rem; font-weight: 600; }
+.muted { color: var(--ink-2); } .small { font-size: .85rem; }
+.eyebrow { font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); font-weight: 600; }
+[dir="rtl"] .eyebrow { letter-spacing: 0; }
+
+/* local-environment strip */
+.envbar { background: var(--warn-soft); color: var(--warn); font-size: .8rem; padding-block: 6px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.envbar b { font-weight: 600; }
+.envbar button { margin-inline-start: auto; }
+
+/* shell */
+#app { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+.shell, .loginwrap { flex: 1; }
+.shell { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: calc(100% - 34px); }
+.rail { background: var(--rail); color: var(--rail-ink); padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; }
+.brand { display: flex; gap: 10px; align-items: center; padding: 4px 8px 18px; color: #fff; }
+.brand-mark { width: 34px; height: 34px; border-radius: 7px; background: linear-gradient(135deg, #3cb7ad, #1d6f8f); display: grid; place-items: center;
+  font: 700 .82rem var(--mono); color: #04211f; letter-spacing: .02em; }
+.brand-name { font-weight: 700; line-height: 1.15; } .brand-sub { font-size: .74rem; color: var(--rail-ink); opacity: .8; }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav button { all: unset; cursor: pointer; padding: 9px 12px; border-radius: 6px; display: flex; gap: 10px; align-items: center; color: var(--rail-ink); font-size: .93rem; }
+.nav button:hover { background: var(--rail-active); color: #fff; }
+.nav button[aria-current="page"] { background: var(--rail-active); color: #fff; box-shadow: inset 3px 0 0 #3cb7ad; }
+[dir="rtl"] .nav button[aria-current="page"] { box-shadow: inset -3px 0 0 #3cb7ad; }
+.nav .count { margin-inline-start: auto; font: 500 .75rem var(--mono); background: #ffffff1a; padding: 0 7px; border-radius: 10px; }
+.rail-foot { margin-top: auto; padding: 12px 8px 0; border-top: 1px solid #ffffff1a; font-size: .82rem; display: grid; gap: 8px; }
+.rail-foot .who { color: #fff; font-weight: 600; } .rail-foot .role { font-size: .75rem; opacity: .8; }
+.main { min-width: 0; display: flex; flex-direction: column; }
+.topbar { display: flex; gap: 12px; align-items: center; padding-block: 14px; border-bottom: 1px solid var(--line); background: var(--surface);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+.topbar .title { min-width: 0; } .topbar .actions { margin-inline-start: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.content { padding-block: 22px 60px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 18px; max-width: 1240px; width: 100%; }
+@media (min-width: 900px) { .content { padding-inline: 28px; } }
+
+/* controls */
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 7px 14px; border-radius: 6px; cursor: pointer; font-weight: 500; display: inline-flex; gap: 8px; align-items: center; white-space: nowrap; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.danger { color: var(--bad); border-color: var(--bad); background: transparent; }
+.btn.ghost { border-color: transparent; background: transparent; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.sm { padding: 4px 10px; font-size: .85rem; }
+.langtoggle { border: 1px solid var(--line); border-radius: 6px; display: inline-flex; overflow: hidden; }
+.langtoggle button { all: unset; cursor: pointer; padding: 5px 11px; font-size: .85rem; font-weight: 600; }
+.langtoggle button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+label.f { display: grid; gap: 4px; font-size: .88rem; font-weight: 500; min-width: 0; }
+input[type=text], input[type=email], input[type=password], input[type=date], input[type=number], select, textarea {
+  width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 8px 10px; min-width: 0; }
+textarea { min-height: 84px; resize: vertical; }
+input:disabled, select:disabled, textarea:disabled { background: var(--surface-2); color: var(--ink-2); }
+.grid2 { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.stack { display: grid; gap: 12px; }
+
+/* surfaces */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.panel-head { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; } .panel-head .actions { margin-inline-start: auto; display: flex; gap: 8px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: start; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--surface-2); font-weight: 600; font-size: .8rem; color: var(--ink-2); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+tr.click { cursor: pointer; } tr.click:hover td { background: var(--accent-soft); }
+.empty { padding: 22px; text-align: center; color: var(--ink-2); }
+
+.chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 20px; padding: 1px 10px; font-size: .78rem; font-weight: 600; white-space: nowrap; }
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.st-draft { background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
+.st-submitted { background: var(--info-soft); color: var(--info); }
+.st-under_review { background: var(--accent-soft); color: var(--accent); }
+.st-needs_info { background: var(--warn-soft); color: var(--warn); }
+.st-completed { background: var(--ok-soft); color: var(--ok); }
+.st-cancelled, .st-superseded { background: var(--bad-soft); color: var(--bad); }
+.tag { font-size: .72rem; font-weight: 600; padding: 0 7px; border-radius: 4px; border: 1px solid var(--line); color: var(--ink-2); }
+.tag.req { color: var(--bad); border-color: currentColor; } .tag.rec { color: var(--warn); border-color: currentColor; }
+
+.kpis { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 2px; cursor: pointer; text-align: start; }
+.kpi:hover { border-color: var(--accent); }
+.kpi .n { font: 600 1.6rem var(--mono); } .kpi .l { font-size: .84rem; color: var(--ink-2); }
+
+.notice { border-radius: 6px; padding: 12px 14px; font-size: .9rem; display: grid; gap: 4px; }
+.notice.warn { background: var(--warn-soft); color: var(--ink); border-inline-start: 4px solid var(--warn); }
+.notice.info { background: var(--info-soft); border-inline-start: 4px solid var(--info); }
+.notice.bad { background: var(--bad-soft); border-inline-start: 4px solid var(--bad); }
+.notice.ok { background: var(--ok-soft); border-inline-start: 4px solid var(--ok); }
+
+/* catalogue */
+.catalog { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.prod { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); padding: 14px; display: grid; gap: 8px; align-content: start; }
+.prod.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.prod .code { font: 500 .74rem var(--mono); color: var(--ink-2); }
+.prod .nm { font-weight: 600; } .prod .alt { font-size: .82rem; color: var(--ink-2); }
+.prod .foot { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+
+/* form */
+.formlayout { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr) 300px; align-items: start; }
+.side { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 76px); display: grid; gap: 14px; }
+.fieldset { display: grid; gap: 14px; }
+.field { display: grid; gap: 6px; padding: 12px 0; border-bottom: 1px dashed var(--line); scroll-margin-top: 90px; }
+.field:last-child { border-bottom: 0; }
+.field .lbl { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-weight: 600; font-size: .93rem; }
+.field .help { font-size: .82rem; color: var(--ink-2); }
+.field .state { font-size: .8rem; min-height: 1.2em; }
+.field .state.ok { color: var(--ok); } .field .state.bad { color: var(--bad); } .field .state.busy { color: var(--ink-2); }
+.field.flash { animation: flash 1.2s ease; }
+@keyframes flash { 0% { background: var(--warn-soft); } 100% { background: transparent; } }
+.opts { display: flex; flex-wrap: wrap; gap: 6px 16px; } .opts label { display: inline-flex; gap: 6px; align-items: center; font-weight: 400; }
+.issues { display: grid; gap: 6px; max-height: 340px; overflow: auto; }
+.issue { all: unset; cursor: pointer; display: grid; gap: 2px; padding: 7px 9px; border-radius: 5px; font-size: .84rem; border-inline-start: 3px solid; }
+.issue.error { border-color: var(--bad); background: var(--bad-soft); } .issue.warning { border-color: var(--warn); background: var(--warn-soft); }
+.answer-ro { white-space: pre-wrap; }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; font-size: .9rem; } .kv dt { color: var(--ink-2); } .kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+
+/* steps */
+.steps { display: flex; gap: 0; flex-wrap: wrap; }
+.step { display: flex; align-items: center; gap: 8px; font-size: .84rem; color: var(--ink-2); padding-inline-end: 18px; }
+.step .dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font: 600 .72rem var(--mono); }
+.step.done .dot { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.step.now { color: var(--ink); font-weight: 600; } .step.now .dot { border-color: var(--accent); color: var(--accent); }
+.step.warn .dot { border-color: var(--warn); background: var(--warn-soft); color: var(--warn); }
+
+/* login */
+.loginwrap { min-height: calc(100% - 34px); display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+.loginart { background: var(--rail); color: var(--rail-ink); padding: 48px max(28px, env(safe-area-inset-left, 0px)); display: grid; align-content: space-between; gap: 30px; position: relative; overflow: hidden; }
+.loginart h1 { color: #fff; font-size: 2rem; max-width: 18ch; }
+.loginart canvas { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .55; pointer-events: none; }
+.loginart > * { position: relative; }
+.spec { display: grid; gap: 4px; font: .82rem var(--mono); color: #9fc7cd; }
+.loginform { padding: 48px max(24px, env(safe-area-inset-right, 0px)) 48px 24px; display: grid; align-content: center; justify-items: center; }
+.loginform .card { width: min(420px, 100%); display: grid; gap: 14px; }
+.demo-accounts { display: grid; gap: 6px; }
+.demo-accounts button { all: unset; cursor: pointer; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; display: grid; gap: 0; font-size: .85rem; background: var(--surface); }
+.demo-accounts button:hover { border-color: var(--accent); }
+.demo-accounts .em { font: .78rem var(--mono); color: var(--ink-2); }
+
+/* boot */
+.boot { min-height: 100%; display: grid; place-items: center; padding: 24px; }
+.boot .card { width: min(560px, 100%); display: grid; gap: 14px; }
+.bootlist { display: grid; gap: 4px; font: .82rem var(--mono); }
+.bootlist .ok { color: var(--ok); } .bootlist .run { color: var(--accent); } .bootlist .bad { color: var(--bad); }
+.bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; } .bar i { display: block; height: 100%; background: var(--accent); transition: width .3s; }
+
+/* dialog + toast */
+.scrim { position: fixed; inset: 0; background: rgba(5,15,20,.45); display: grid; place-items: center; padding: 16px; z-index: 50; }
+.dialog { background: var(--surface); border-radius: 10px; width: min(640px, 100%); max-height: 86vh; overflow: auto; padding: 20px; display: grid; gap: 14px; box-shadow: var(--shadow); }
+.toast { position: fixed; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); inset-inline-end: max(18px, env(safe-area-inset-right, 0px)); z-index: 60; background: var(--ink); color: var(--surface); padding: 10px 16px; border-radius: 8px; font-size: .9rem; max-width: min(420px, calc(100vw - 36px)); box-shadow: var(--shadow); }
+.toast.bad { background: var(--bad); color: #fff; }
+.codeinput { font: 600 1.15rem var(--mono); letter-spacing: .06em; text-align: center; text-transform: uppercase; padding: 12px 10px !important; }
+.btn.big { padding: 11px 16px; font-size: 1rem; justify-content: center; }
+.linkbtn { all: unset; cursor: pointer; color: var(--ink-2); font-size: .85rem; text-align: center; text-decoration: underline; text-underline-offset: 3px; }
+.linkbtn:hover { color: var(--accent); }
+.codebig { font: 600 clamp(1.05rem, 4.4vw, 1.5rem) var(--mono); letter-spacing: .04em; text-align: center; padding: 18px 12px; border: 2px dashed var(--accent); border-radius: 8px; background: var(--surface-2); user-select: all; overflow-wrap: anywhere; }
+.tokenbox { font: .85rem var(--mono); background: var(--surface-2); border: 1px dashed var(--accent); padding: 10px; border-radius: 6px; overflow-wrap: anywhere; user-select: all; }
+
+@media (max-width: 1000px) { .formlayout { grid-template-columns: minmax(0, 1fr); } .side { position: static; } }
+@media (max-width: 820px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .rail { flex-direction: row; flex-wrap: wrap; align-items: center; padding: 10px max(16px, env(safe-area-inset-left, 0px)); gap: 6px; }
+  .brand { padding: 0 8px 0 0; } .brand-sub { display: none; }
+  .nav { flex-direction: row; flex-wrap: wrap; width: 100%; } .nav button { padding: 6px 10px; font-size: .85rem; }
+  .rail-foot { display: none; }
+  .loginwrap { grid-template-columns: minmax(0, 1fr); } .loginart { padding: 28px 16px; } .loginart h1 { font-size: 1.5rem; }
+  .topbar { position: static; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div id="app" aria-live="polite"></div>
+
+<script type="module">
+/* =========================================================================================================
+   EMC Technical RFQ Portal — Step 03 v1.4 work copy (shared-server build).
+   Talks to a Supabase-compatible backend over HTTP only: Supabase Auth (/auth/v1), PostgREST (/rest/v1) and the
+   Edge Function "customer-access" (/functions/v1). The database holds the ORIGINAL migrations + 0005 + 0006; every
+   rule (RLS, portal functions, the per-request access-code check) is enforced on the server, not in this page.
+   config.json (next to this page) gives the server address and the PUBLIC anon key. No secret is in this page.
+   ========================================================================================================= */
+const CFG = { url: '', anon: '', portal: location.href.split('#')[0] };
+const ENABLED_PRODUCTS = ['turnkey'];   // the only product with no required number field (numbers need EMC unit approval, D1/D2)
+
+/* ------------------------------------------------------------------ i18n */
+const T = {
+  ar: {
+    portal: 'بوابة طلبات العروض الفنية', company: 'EMC للتبريد والتجميد', env: 'بيئة اختبار محلية', envText: 'خادم اختبار مشترك محلي (Supabase Auth + PostgREST + Edge Function + PostgreSQL) بالـ migrations الأصلية + 0005 و0006. ليس مشروع Supabase الحقيقي، وكل البيانات تجريبية.', server: 'الخادم', stagingText: 'بيئة Staging للاختبار قبل التشغيل — بيانات تجريبية فقط.',
+    system: 'حالة النظام', signin: 'تسجيل الدخول', email: 'البريد الإلكتروني', password: 'كلمة المرور', signinBtn: 'دخول', demoAccounts: 'حسابات تجريبية (اضغط للتعبئة)',
+    acceptInvite: 'لديك دعوة من EMC؟ أنشئ حسابك', haveAccount: 'لديك حساب؟ سجّل الدخول', inviteToken: 'رمز الدعوة', fullName: 'الاسم الكامل', createAccount: 'إنشاء الحساب وقبول الدعوة',
+    badLogin: 'البريد الإلكتروني أو كلمة المرور غير صحيحة.', signout: 'خروج',
+    loginHero: 'من مواصفات المصنع إلى عرض سعر هندسي، في مسار واحد.', loginLead: 'يملأ العميل متطلبات المعدات الفنية، ويراجعها مهندسو EMC، ويُحفظ كل إصدار كما أُرسل.',
+    roles: { admin: 'مدير النظام · EMC', engineer: 'مهندس · EMC', customer: 'عميل' },
+    nav: { overview: 'نظرة عامة', rfqs: 'الطلبات', companies: 'الشركات', projects: 'المشروعات', codes: 'أكواد الدخول', activity: 'سجل النشاط', units: 'مراجعة الوحدات', home: 'طلباتي', new: 'طلب جديد' },
+    status: { draft: 'مسودة', submitted: 'مُرسل', under_review: 'قيد المراجعة', needs_info: 'مطلوب معلومات', completed: 'مكتمل', cancelled: 'ملغى', superseded: 'مستبدَلة' },
+    rfqNo: 'رقم الطلب', product: 'المنتج', project: 'المشروع', customer: 'العميل', statusL: 'الحالة', updated: 'آخر تحديث', revision: 'الإصدار', actions: 'إجراءات',
+    noRows: 'لا توجد بيانات بعد.', open: 'فتح', create: 'إنشاء', save: 'حفظ', cancel: 'إلغاء', close: 'إغلاق', back: 'رجوع', copy: 'نسخ', copied: 'تم النسخ',
+    companyName: 'اسم الشركة', country: 'الدولة', city: 'المدينة', phone: 'الهاتف', addCompany: 'إضافة شركة', addProject: 'إضافة مشروع', projectName: 'اسم المشروع', projectType: 'نوع المشروع',
+    contactName: 'اسم المسؤول', contactEmail: 'بريد المسؤول', contactPhone: 'هاتف المسؤول', siteCountry: 'دولة الموقع', siteCity: 'مدينة الموقع', siteAddress: 'عنوان الموقع', siteStatus: 'حالة الموقع', customerRef: 'مرجع العميل', delivery: 'موعد التسليم المطلوب',
+    invite: 'دعوة عميل', inviteEmail: 'بريد العميل', expiresDays: 'صلاحية الدعوة (أيام)', invitations: 'الدعوات', members: 'أعضاء المشروعات', revoke: 'إلغاء', pending: 'بانتظار القبول', accepted: 'مقبولة', revoked: 'ملغاة', expired: 'منتهية',
+    tokenOnce: 'رمز الدعوة يظهر مرة واحدة فقط. أرسله للعميل ليُنشئ حسابه من صفحة الدخول.', inviteCreated: 'تم إنشاء الدعوة',
+    myRfqs: 'طلبات عروض الأسعار', myProjects: 'مشروعاتي', startNew: 'بدء طلب جديد', chooseProject: 'المشروع', chooseProduct: 'اختر المعدة',
+    startRfq: 'بدء الطلب', previewFields: 'عرض الحقول', unitsPending: 'التقديم متاح بعد اعتماد EMC للوحدات', unitsPendingLong: 'هذا المنتج يحتوي على حقول رقمية مطلوبة. البوابة لا تقبل الأرقام قبل أن تعتمد EMC الوحدات المسموحة لكل حقل (القراران D1 وD2)، لذلك لا يمكن تقديم طلب عليه الآن.',
+    available: 'متاح للتقديم', fieldsCount: 'حقل', requiredCount: 'مطلوب',
+    req: 'مطلوب', rec: 'موصى به', opt: 'اختياري', cond: 'شرطي', eng: 'هندسي',
+    numLocked: 'إدخال الأرقام يُفتح بعد اعتماد EMC للوحدات (D1/D2).', fileLocked: 'رفع الملفات غير متاح بعد (التخزين لم يُبنَ — القرار D8).', notKnown: 'غير معروف',
+    yes: 'نعم', no: 'لا', saving: 'جارٍ الحفظ…', saved: 'تم الحفظ', otherText: 'التفاصيل',
+    projectDetails: 'بيانات المشروع', saveProject: 'حفظ بيانات المشروع', projectSaved: 'تم حفظ بيانات المشروع',
+    check: 'فحص الطلب', checkResult: 'نتيجة الفحص', blocking: 'يجب إكماله', warnings: 'تنبيه', allGood: 'لا توجد نواقص تمنع الإرسال.',
+    declaration: 'أقر بأن المعلومات صحيحة وكاملة حسب علمي.', ackWarnings: 'أعلم بوجود حقول موصى بها فارغة وأرغب في الإرسال.', submit: 'إرسال الطلب إلى EMC', submitted: 'تم إرسال الطلب',
+    sections: 'الأقسام', progress: 'المُجاب', draftNote: 'تُحفظ كل إجابة تلقائيًا كمسودة.',
+    infoRequest: 'طلب معلومات من EMC', prepareRevision: 'إعداد إصدار جديد للرد', continueEdit: 'متابعة التعديل', revisions: 'الإصدارات', viewAnswers: 'عرض الإجابات',
+    submittedAt: 'أُرسل في', frozen: 'هذا الإصدار مُرسل ومجمّد ولا يمكن تعديله.',
+    staffActions: 'إجراءات EMC', toReview: 'بدء المراجعة', askInfo: 'طلب معلومات إضافية', complete: 'اعتماد كمكتمل', cancelRfq: 'إلغاء الطلب', messageToCustomer: 'الرسالة للعميل',
+    statusChanged: 'تم تحديث الحالة', history: 'سجل الأحداث', noActions: 'لا توجد إجراءات متاحة في هذه الحالة.',
+    unitReview: 'إجابات مُرسلة وحدتها غير مؤكدة', unitReviewEmpty: 'لا توجد إجابات تحتاج مراجعة وحدات.',
+    reset: 'إعادة ضبط البيانات التجريبية', resetConfirm: 'سيتم حذف قاعدة البيانات المحلية من هذا المتصفح وإعادة بنائها من الـ migrations. متابعة؟', yesReset: 'نعم، أعد البناء',
+    boot: 'تجهيز البيئة المحلية', bootEngine: 'تحميل محرك PostgreSQL', bootFiles: 'التحقق من بصمات ملفات الـ migrations', bootSeed: 'إنشاء بيانات تجريبية', bootDone: 'جاهز',
+    bootReuse: 'استخدام قاعدة البيانات المحفوظة في هذا المتصفح', welcome: 'مرحبًا', staffHome: 'لوحة EMC',
+    counts: 'ملخص', recent: 'أحدث الطلبات', all: 'الكل', filter: 'تصفية', item: 'البند', qty: 'الكمية', answered: 'تمت الإجابة',
+    readOnly: 'عرض فقط', fieldsOf: 'حقول', systemTitle: 'حالة البيئة المحلية', engine: 'المحرك', migrations: 'الـ migrations', gate: 'بوابة الصلاحيات', persist: 'الحفظ',
+    persistIdb: 'محفوظة في هذا المتصفح (IndexedDB)', persistMem: 'في الذاكرة فقط (تُفقد عند إعادة التحميل)', skipped: 'جملة تم تجاوزها',
+    newProjectNote: 'يمكن لموظفي EMC فقط إنشاء الشركات والمشروعات.', type: { New: 'جديد', Expansion: 'توسعة', Replacement: 'استبدال', Upgrade: 'تحديث', Turnkey: 'تسليم مفتاح' },
+    siteSt: { 'New site': 'موقع جديد', 'Existing plant': 'مصنع قائم', 'Under construction': 'تحت الإنشاء' },
+    codeLogin: 'الدخول إلى بوابة العملاء', accessCode: 'كود الدخول', enter: 'دخول', enterCode: 'أدخل كود الدخول.', staffLogin: 'دخول موظفي EMC', customerLogin: 'دخول العملاء بالكود',
+    staffOnlyLogin: 'هذا الدخول لموظفي EMC فقط. العملاء يدخلون بكود الدخول.', companyPortal: 'بوابة الشركة', validUntil: 'صالح حتى', noProjects: 'لا توجد مشروعات مفتوحة لكم بعد. تواصل مع EMC.',
+    scopeShort: { company: 'كل مشروعات الشركة', project: 'مشروع واحد' }, newCode: 'إنشاء كود دخول لعميل', scopeL: 'نطاق الدخول', scopeCompany: 'كل مشروعات الشركة (والجديدة لاحقًا)', scopeProject: 'مشروع محدد فقط',
+    maxDevices: 'الحد الأقصى للأجهزة', maxDevicesShort: 'عدد الأجهزة', maxDevicesNote: 'الأجهزة التي دخلت بالفعل تظل تعمل. الحد الجديد يطبَّق على الأجهزة الجديدة فقط؛ لإخراج جهاز استخدم إلغاء الكود أو كود بديل.', expiresOn: 'تاريخ الانتهاء', labelL: 'ملاحظة داخلية (اختياري)', labelPh: 'مثال: م. سيلفا — واتساب', createCode: 'إنشاء كود', codes: 'الأكواد', codeCol: 'الكود', created: 'الإنشاء', devices: 'أجهزة نشطة', lastUsed: 'آخر استخدام',
+    replaceCode: 'كود بديل', changeExpiry: 'تغيير الانتهاء', revokeCode: 'إلغاء الكود', confirm: 'تأكيد', activeCodes: 'أكواد فعّالة',
+    codeState: { active: 'فعّال', expired: 'منتهي', revoked: 'ملغى', replaced: 'استُبدل' },
+    codeNote: 'الكود مرتبط بالشركة وصلاحياتها داخل قاعدة البيانات، ولا يفتح إلا مشروعات هذه الشركة. النظام يحفظ بصمة الكود فقط (SHA-256)، لذلك يظهر الكود كاملًا مرة واحدة عند إنشائه.',
+    newCodeTitle: 'كود الدخول جاهز', codeOnce: 'هذا الكود يظهر الآن مرة واحدة فقط ولا يُحفظ نصه في النظام. انسخه وأرسله للعميل. لو ضاع، أنشئ كودًا بديلًا.',
+    copyCode: 'نسخ الكود', copyMsg: 'نسخ الرسالة كاملة', msgText: 'رسالة جاهزة للإرسال', noProjectForCompany: 'هذه الشركة ليس لها مشروعات بعد.',
+    revokeConfirm: 'سيتوقف الكود فورًا، وتخرج كل الأجهزة التي دخلت به. متابعة؟', replaceNote: 'سيتوقف الكود الحالي وتخرج الأجهزة التي دخلت به، ويُنشأ كود جديد لنفس الشركة ونفس النطاق.',
+    when: 'الوقت', event: 'الحدث', by: 'بواسطة', customerDevice: 'جهاز العميل', actLogins: 'الدخول', actFailed: 'محاولات فاشلة', actAdmin: 'إدارة الأكواد', testCodes: 'أكواد تجريبية (بيانات اختبار محلية فقط)',
+    otherTabTitle: 'البوابة مفتوحة في تبويب آخر', otherTab: 'في النسخة المحلية تعمل قاعدة البيانات داخل تبويب واحد فقط. أغلق التبويب الآخر ثم اضغط إعادة المحاولة.', retry: 'إعادة المحاولة',
+    localNote: 'الكود يعمل من أي جهاز يفتح رابط البوابة ويصل إلى خادمها. الخادم الحالي خادم اختبار محلي؛ تشغيله للعملاء يحتاج موافقتك على خطوة النشر (G0/G8).',
+    offlineShort: 'تعذّر الاتصال بخادم البوابة.', offlineTitle: 'لا يوجد اتصال بالخادم', offlineText: 'الجلسة محفوظة على هذا الجهاز ولم يتم تسجيل خروجك. تحقّق من الإنترنت ثم أعد المحاولة.', pendingSignOut: 'تم تسجيل الخروج من هذا الجهاز. لم يمكن الوصول إلى الخادم الآن، وسيتم إنهاء الجلسة عليه تلقائيًا عند عودة الاتصال.',
+    rfqCreated: 'تم إنشاء المسودة', revisionCreated: 'تم إنشاء إصدار جديد للرد', staffOnly: 'هذه الصفحة لموظفي EMC',
+  },
+  en: {
+    portal: 'Technical RFQ Portal', company: 'EMC Refrigeration & Freezing', env: 'Local test environment', envText: 'Shared local test server (Supabase Auth + PostgREST + Edge Function + PostgreSQL) with the original migrations + 0005 and 0006. Not the real Supabase project; all data is test data.', server: 'Server', stagingText: 'Staging environment for testing before go-live — test data only.',
+    system: 'System status', signin: 'Sign in', email: 'Email', password: 'Password', signinBtn: 'Sign in', demoAccounts: 'Test accounts (click to fill)',
+    acceptInvite: 'Invited by EMC? Create your account', haveAccount: 'Have an account? Sign in', inviteToken: 'Invitation code', fullName: 'Full name', createAccount: 'Create account and accept invitation',
+    badLogin: 'Email or password is incorrect.', signout: 'Sign out',
+    loginHero: 'From plant specification to engineered quotation, in one track.', loginLead: 'Customers fill in the technical requirements, EMC engineers review them, and every revision is kept exactly as submitted.',
+    roles: { admin: 'Administrator · EMC', engineer: 'Engineer · EMC', customer: 'Customer' },
+    nav: { overview: 'Overview', rfqs: 'RFQs', companies: 'Companies', projects: 'Projects', codes: 'Access codes', activity: 'Activity log', units: 'Unit review', home: 'My RFQs', new: 'New RFQ' },
+    status: { draft: 'Draft', submitted: 'Submitted', under_review: 'Under review', needs_info: 'Needs info', completed: 'Completed', cancelled: 'Cancelled', superseded: 'Superseded' },
+    rfqNo: 'RFQ no.', product: 'Product', project: 'Project', customer: 'Customer', statusL: 'Status', updated: 'Updated', revision: 'Revision', actions: 'Actions',
+    noRows: 'Nothing here yet.', open: 'Open', create: 'Create', save: 'Save', cancel: 'Cancel', close: 'Close', back: 'Back', copy: 'Copy', copied: 'Copied',
+    companyName: 'Company name', country: 'Country', city: 'City', phone: 'Phone', addCompany: 'Add company', addProject: 'Add project', projectName: 'Project name', projectType: 'Project type',
+    contactName: 'Contact name', contactEmail: 'Contact email', contactPhone: 'Contact phone', siteCountry: 'Site country', siteCity: 'Site city', siteAddress: 'Site address', siteStatus: 'Site status', customerRef: 'Customer reference', delivery: 'Requested delivery',
+    invite: 'Invite customer', inviteEmail: 'Customer email', expiresDays: 'Valid for (days)', invitations: 'Invitations', members: 'Project members', revoke: 'Revoke', pending: 'Pending', accepted: 'Accepted', revoked: 'Revoked', expired: 'Expired',
+    tokenOnce: 'The invitation code is shown only once. Send it to the customer to create an account from the sign-in page.', inviteCreated: 'Invitation created',
+    myRfqs: 'Requests for quotation', myProjects: 'My projects', startNew: 'Start a new RFQ', chooseProject: 'Project', chooseProduct: 'Choose equipment',
+    startRfq: 'Start RFQ', previewFields: 'View fields', unitsPending: 'Opens after EMC approves units', unitsPendingLong: 'This product has required number fields. The portal accepts no numbers until EMC approves the allowed units for each field (decisions D1 and D2), so a request on it cannot be submitted yet.',
+    available: 'Available', fieldsCount: 'fields', requiredCount: 'required',
+    req: 'Required', rec: 'Recommended', opt: 'Optional', cond: 'Conditional', eng: 'Engineering',
+    numLocked: 'Number entry opens after EMC approves units (D1/D2).', fileLocked: 'File upload is not available yet (storage not built, decision D8).', notKnown: 'Not known',
+    yes: 'Yes', no: 'No', saving: 'Saving…', saved: 'Saved', otherText: 'Details',
+    projectDetails: 'Project details', saveProject: 'Save project details', projectSaved: 'Project details saved',
+    check: 'Check request', checkResult: 'Check result', blocking: 'Must complete', warnings: 'Warning', allGood: 'Nothing blocks submission.',
+    declaration: 'I confirm the information is correct and complete to the best of my knowledge.', ackWarnings: 'I know some recommended fields are empty and want to submit.', submit: 'Submit to EMC', submitted: 'Request submitted',
+    sections: 'Sections', progress: 'Answered', draftNote: 'Every answer is saved automatically as a draft.',
+    infoRequest: 'Information requested by EMC', prepareRevision: 'Prepare a new revision to reply', continueEdit: 'Continue editing', revisions: 'Revisions', viewAnswers: 'View answers',
+    submittedAt: 'Submitted', frozen: 'This revision was submitted and is frozen.',
+    staffActions: 'EMC actions', toReview: 'Start review', askInfo: 'Request more information', complete: 'Mark completed', cancelRfq: 'Cancel RFQ', messageToCustomer: 'Message to the customer',
+    statusChanged: 'Status updated', history: 'Activity', noActions: 'No actions are available in this status.',
+    unitReview: 'Submitted answers with an unverified unit', unitReviewEmpty: 'No answers need a unit review.',
+    reset: 'Reset test data', resetConfirm: 'This deletes the local database in this browser and rebuilds it from the migrations. Continue?', yesReset: 'Yes, rebuild',
+    boot: 'Preparing the local environment', bootEngine: 'Loading the PostgreSQL engine', bootFiles: 'Checking migration file fingerprints', bootSeed: 'Creating test data', bootDone: 'Ready',
+    bootReuse: 'Using the database saved in this browser', welcome: 'Welcome', staffHome: 'EMC console',
+    counts: 'Summary', recent: 'Latest RFQs', all: 'All', filter: 'Filter', item: 'Item', qty: 'Qty', answered: 'Answered',
+    readOnly: 'Read only', fieldsOf: 'Fields of', systemTitle: 'Local environment status', engine: 'Engine', migrations: 'Migrations', gate: 'Privilege gate', persist: 'Storage',
+    persistIdb: 'Saved in this browser (IndexedDB)', persistMem: 'In memory only (lost on reload)', skipped: 'statement skipped',
+    newProjectNote: 'Only EMC staff can create companies and projects.', type: { New: 'New', Expansion: 'Expansion', Replacement: 'Replacement', Upgrade: 'Upgrade', Turnkey: 'Turnkey' },
+    siteSt: { 'New site': 'New site', 'Existing plant': 'Existing plant', 'Under construction': 'Under construction' },
+    codeLogin: 'Customer portal sign-in', accessCode: 'Access code', enter: 'Sign in', enterCode: 'Enter your access code.', staffLogin: 'EMC staff sign-in', customerLogin: 'Customer sign-in with a code',
+    staffOnlyLogin: 'This sign-in is for EMC staff. Customers sign in with an access code.', companyPortal: 'Company portal', validUntil: 'Valid until', noProjects: 'No projects are open to you yet. Please contact EMC.',
+    scopeShort: { company: 'All company projects', project: 'One project' }, newCode: 'Create a customer access code', scopeL: 'Access scope', scopeCompany: 'All projects of the company (also new ones)', scopeProject: 'One project only',
+    maxDevices: 'Device limit', maxDevicesShort: 'Devices', maxDevicesNote: 'Devices already signed in keep working. The new limit applies to new devices only; to sign a device out, revoke or replace the code.', expiresOn: 'Expires on', labelL: 'Internal note (optional)', labelPh: 'e.g. Mr. Silva — WhatsApp', createCode: 'Create code', codes: 'Codes', codeCol: 'Code', created: 'Created', devices: 'Active devices', lastUsed: 'Last used',
+    replaceCode: 'Replacement code', changeExpiry: 'Change expiry', revokeCode: 'Revoke code', confirm: 'Confirm', activeCodes: 'Active codes',
+    codeState: { active: 'Active', expired: 'Expired', revoked: 'Revoked', replaced: 'Replaced' },
+    codeNote: "The code is tied to the company and its permissions in the database and opens only that company's projects. Only the code's fingerprint (SHA-256) is stored, so the full code is shown once, when it is created.",
+    newCodeTitle: 'Access code ready', codeOnce: 'This code is shown only now and its text is not stored. Copy it and send it to the customer. If it is lost, create a replacement code.',
+    copyCode: 'Copy code', copyMsg: 'Copy full message', msgText: 'Message ready to send', noProjectForCompany: 'This company has no projects yet.',
+    revokeConfirm: 'The code stops working at once and every device signed in with it is signed out. Continue?', replaceNote: 'The current code stops working, its devices are signed out, and a new code is created for the same company and scope.',
+    when: 'Time', event: 'Event', by: 'By', customerDevice: 'Customer device', actLogins: 'Sign-ins', actFailed: 'Failed attempts', actAdmin: 'Code management', testCodes: 'Test codes (local test data only)',
+    otherTabTitle: 'The portal is open in another tab', otherTab: 'In this local build the database runs in one tab only. Close the other tab, then press Retry.', retry: 'Retry',
+    localNote: 'The code works from any device that opens the portal link and reaches its server. The current server is a local test server; serving real customers needs your approval of the deployment step (G0/G8).',
+    offlineShort: 'Cannot reach the portal server.', offlineTitle: 'No connection to the server', offlineText: 'Your session is kept on this device and you are still signed in. Check the internet connection, then retry.', pendingSignOut: 'Signed out on this device. The server could not be reached; the session there will be ended automatically when the connection is back.',
+    rfqCreated: 'Draft created', revisionCreated: 'New revision created for your reply', staffOnly: 'This page is for EMC staff',
+  },
+};
+const SECTION_AR = { 'Additional': 'إضافي', 'Air': 'الهواء', 'Airflow': 'تدفق الهواء', 'Application': 'الاستخدام', 'Buildings': 'المباني', 'Casing': 'الهيكل', 'Coil': 'الملف', 'Cold Chain': 'سلسلة التبريد',
+  'Compliance': 'المطابقة والشهادات', 'Compressor': 'الضاغط', 'Condenser': 'المكثف', 'Configuration': 'التهيئة', 'Construction': 'الإنشاء', 'Controls': 'التحكم', 'Customer / Project': 'العميل / المشروع', 'Defrost': 'إذابة الثلج',
+  'Dimensions': 'الأبعاد', 'Documents': 'المستندات', 'Doors': 'الأبواب', 'Electrical': 'الكهرباء', 'Engineering': 'هندسي', 'Equipment': 'المعدات', 'Fan': 'المروحة', 'Floor': 'الأرضية', 'Handling': 'المناولة',
+  'Heating': 'التسخين', 'Hygiene': 'النظافة', 'Integration': 'التكامل', 'Noise': 'الضوضاء', 'Operation': 'التشغيل', 'Panels': 'الألواح', 'Process': 'العملية', 'Product': 'المنتج', 'Product / process': 'المنتج / العملية',
+  'Product Selection': 'اختيار المنتج', 'Production': 'الإنتاج', 'Project': 'المشروع', 'Refrigerant': 'غاز التبريد', 'Refrigeration': 'التبريد', 'Replacement': 'الاستبدال', 'Room': 'الغرفة', 'Safety': 'السلامة',
+  'Scope': 'نطاق العمل', 'Site': 'الموقع', 'Site / Integration': 'الموقع / التكامل', 'Storage': 'التخزين', 'System': 'النظام', 'System Load': 'حمل النظام', 'Temperatures': 'درجات الحرارة', 'Thermal': 'الحراري',
+  'Type': 'النوع', 'Utilities': 'المرافق', 'Water': 'المياه' };
+
+const S = { lang: 'ar', user: null, view: 'boot', params: {}, db: null, sys: {}, catalog: {}, products: [], cache: {} };
+try { const l = localStorage.getItem('emc.lang'); if (l === 'en' || l === 'ar') S.lang = l; } catch {}
+const t = (k) => { const v = k.split('.').reduce((o, p) => (o || {})[p], T[S.lang]); return v ?? k; };
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pick = (o, en = 'en', ar = 'ar') => (S.lang === 'ar' ? (o?.[ar] || o?.[en]) : (o?.[en] || o?.[ar])) ?? '';
+const fmtDate = (d) => { if (!d) return '—'; try { return new Intl.DateTimeFormat(S.lang === 'ar' ? 'ar-EG' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(d)); } catch { return d; } };
+const $ = (sel, root = document) => root.querySelector(sel);
+function applyLang() { document.documentElement.lang = S.lang; document.documentElement.dir = S.lang === 'ar' ? 'rtl' : 'ltr'; }
+applyLang();
+
+/* ------------------------------------------------------------------ HTTP layer (Supabase Auth + PostgREST + Edge Function) */
+const tsArg = (v) => v; const jsonArg = (v) => v;   // PostgREST takes JSON values as they are
+// v1.4: three kinds of failure. ENDED (the server says the session/code is over) signs the device out;
+// NETWORK (no connection, timeout, 502/503/504) keeps the session on the device and shows "offline"; anything else
+// is an ordinary error of that one action.
+class NetError extends Error { constructor(m) { super(m || 'RFQ_NETWORK'); this.network = true; } }
+const isNet = (e) => !!e?.network;
+const TEMP_STATUS = [429, 502, 503, 504];   // temporary: rate limit or server unreachable — never ends the session
+async function netFetch(url, opts) {
+  const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 20000);
+  try { return await fetch(url, { ...opts, signal: ctl.signal }); }
+  catch (e) { throw new NetError('RFQ_NETWORK: ' + (e?.name === 'AbortError' ? 'timeout' : (e?.message || 'fetch failed'))); }
+  finally { clearTimeout(tm); }
+}
+let refreshing = null;
+async function refreshTokens(sess) {   // returns new tokens; throws NetError (keep session) or Error('RFQ_SESSION_ENDED')
+  const r = await netFetch(CFG.url + '/auth/v1/token?grant_type=refresh_token', { method: 'POST', headers: { apikey: CFG.anon, 'content-type': 'application/json' }, body: JSON.stringify({ refresh_token: sess.refresh_token }) });
+  if (TEMP_STATUS.includes(r.status) || r.status >= 500) throw new NetError('RFQ_NETWORK: token refresh HTTP ' + r.status);
+  const b = await r.json().catch(() => null);
+  if (!r.ok || !b?.access_token) throw new Error('RFQ_SESSION_ENDED');
+  return b;
+}
+async function ensureFresh() {
+  if (!S.user?.refresh_token || !S.user.expires_at || S.user.expires_at * 1000 - Date.now() > 60000) return;
+  refreshing ||= (async () => {
+    let b;
+    try { b = await refreshTokens(S.user); }
+    catch (e) { if (!isNet(e)) sessionEnded(isCode() ? 'ended' : null); throw e; }
+    Object.assign(S.user, { access_token: b.access_token, refresh_token: b.refresh_token, expires_at: b.expires_at }); store.set(SESSION_KEY, S.user);
+  })().finally(() => { refreshing = null; });
+  await refreshing;
+}
+async function http(method, path, { body, prefer, bearer } = {}) {
+  const h = { apikey: CFG.anon, 'content-type': 'application/json' };
+  if (bearer) h.authorization = 'Bearer ' + bearer; else if (S.user?.access_token) { await ensureFresh(); h.authorization = 'Bearer ' + S.user.access_token; }
+  if (prefer) h.prefer = prefer;
+  const r = await netFetch(CFG.url + path, { method, headers: h, body: body === undefined ? undefined : JSON.stringify(body) });
+  if (TEMP_STATUS.includes(r.status)) throw new NetError('RFQ_NETWORK: HTTP ' + r.status);
+  const txt = await r.text(); let b = null; try { b = txt ? JSON.parse(txt) : null; } catch { b = txt; }
+  if (!r.ok) {
+    const msg = (b && typeof b === 'object' && (b.error && /^RFQ_/.test(b.error) ? b.error : (b.message || b.msg || b.error_description || b.error))) || ('HTTP ' + r.status);
+    if (/RFQ_ACCESS_CODE_ENDED/.test(msg) && isCode()) sessionEnded('ended');
+    if (r.status === 401 && /JWT|jwt|token/.test(msg) && S.user) sessionEnded(isCode() ? 'ended' : null);
+    const e = new Error(msg); e.status = r.status; throw e;
+  }
+  return b;
+}
+const api = {
+  get: (path) => http('GET', '/rest/v1/' + path),
+  insert: async (table, row) => (await http('POST', '/rest/v1/' + table, { body: Object.fromEntries(Object.entries(row).map(([k, v]) => [k, v === '' ? null : v])), prefer: 'return=representation' }))[0],
+  rpc: async (fn, args = {}) => http('POST', '/rest/v1/rpc/' + fn, { body: args }),
+};
+const inList = (ids) => '(' + ids.map((x) => '"' + x + '"').join(',') + ')';
+const FALLBACK = { RFQ_ACCESS_CODE_INVALID: { en: 'This access code is not valid. Check it or ask EMC for a new one.', ar: 'كود الدخول غير صحيح. راجع الكود أو اطلب كودًا جديدًا من EMC.' },
+  RFQ_ACCESS_CODE_LOCKED: { en: 'Too many wrong codes. Please wait 15 minutes and try again.', ar: 'تم إدخال كود غير صحيح عدة مرات. انتظر 15 دقيقة ثم حاول مرة أخرى.' },
+  RFQ_ACCESS_CODE_ENDED: { en: 'Your access code has expired or was cancelled by EMC. Ask EMC for a new code.', ar: 'انتهت صلاحية كود الدخول أو ألغته EMC. اطلب كودًا جديدًا من EMC.' },
+  RFQ_BUSY: { en: 'The service is busy. Please try again in a moment.', ar: 'الخدمة مشغولة الآن. حاول مرة أخرى بعد لحظات.' },
+  RFQ_ACCESS_CODE_DEVICE_LIMIT: { en: 'This access code is already in use on the maximum number of devices. Sign out on another device or ask EMC.', ar: 'كود الدخول مستخدم بالفعل على الحد الأقصى من الأجهزة. سجّل الخروج من جهاز آخر أو تواصل مع EMC.' },
+  RFQ_ACCESS_CODE_MAX_DEVICES: { en: 'Choose a device limit between 1 and 50.', ar: 'اختر حدًا للأجهزة بين 1 و50.' },
+  RFQ_ACCESS_DENIED: { en: 'You do not have access to this item.', ar: 'ليس لديك صلاحية الوصول إلى هذا العنصر.' } };
+const msgOf = (code) => S.catalog[code] || FALLBACK[code];
+function errText(e) {
+  const m = String(e?.message || e); const code = (m.match(/RFQ_[A-Z_]+/) || [])[0];
+  if (code && msgOf(code)) return pick(msgOf(code));
+  if (/permission denied|row-level security/i.test(m)) return pick(msgOf('RFQ_ACCESS_DENIED'));
+  if (isNet(e) || /RFQ_NETWORK|Failed to fetch|NetworkError/i.test(m)) return t('offlineShort');
+  return m.replace(/^error:\s*/i, '');
+}
+const errCode = (e) => (String(e?.message || e).match(/RFQ_[A-Z_]+/) || [''])[0];
+
+/* ------------------------------------------------------------------ boot */
+function bootRender(err) {
+  $('#app').innerHTML = `<div class="boot"><div class="card panel"><div class="eyebrow">EMC · ${esc(t('portal'))}</div><h1>${esc(t('boot'))}</h1>
+    ${err ? `<div class="notice bad"><b>Error</b><span class="mono small">${esc(err)}</span><div class="row"><button class="btn" onclick="location.reload()">${esc(t('retry'))}</button></div></div>` : '<div class="bar"><i style="width:60%"></i></div>'}</div></div>`;
+}
+async function loadCommon() {
+  const [cat, prods, flds] = await Promise.all([api.get('rfq_message_catalog?select=code,message_en,message_ar,default_en,default_ar'),
+    api.get('rfq_products?active=is.true&select=id,code,name_en,name_ar,sort_order&order=sort_order'), api.get('rfq_field_definitions?active=is.true&select=product_id,requirement,data_type')]);
+  for (const r of cat || []) S.catalog[r.code] = { code: r.code, en: r.message_en || r.default_en, ar: r.message_ar || r.default_ar };
+  S.products = (prods || []).map((p) => { const fs = (flds || []).filter((f) => f.product_id === p.id);
+    return { ...p, nfields: fs.length, nreq: fs.filter((f) => f.requirement === 'required').length, nreqnum: fs.filter((f) => f.requirement === 'required' && ['number', 'number_range'].includes(f.data_type)).length }; });
+}
+async function boot() {
+  bootRender();
+  try {
+    const c = await (await fetch('config.json', { cache: 'no-store' })).json(); CFG.url = (c.supabase_url || '').replace(/\/$/, ''); CFG.anon = c.anon_key; CFG.env = c.environment || 'production'; CFG.demoAccounts = Array.isArray(c.demo_accounts) ? c.demo_accounts : []; if (c.portal_url) CFG.portal = c.portal_url;
+    if (CFG.env === 'local-test') { try { S.sys = await (await fetch('stack-info.json', { cache: 'no-store' })).json(); } catch { S.sys = {}; } } else S.sys = {};   // review S3
+    flushPendingSignOut();
+    addEventListener('online', () => { flushPendingSignOut(); if (S.offline && S.user) retryConnection(); });
+    const saved = store.get(SESSION_KEY);
+    if (saved?.access_token) { S.user = saved;
+      try {
+        const st = isCode() ? await checkCodeSession(true) : 'active';
+        if (st === 'ended') { S.user = null; S.loginNote = 'ended'; }
+        else if (st === 'active') await loadCommon();
+        else S.offline = true;                                   // v1.4: network problem: keep the session, show offline
+      } catch (e) { console.warn(e); if (isNet(e)) S.offline = true; else { S.user = null; store.set(SESSION_KEY, null); } } }
+    go(S.user ? (isStaff() ? 'overview' : 'home') : 'login');
+  } catch (e) { console.error(e); bootRender(e.message || String(e)); }
+}
+
+/* ------------------------------------------------------------------ sign-in
+   Staff: Supabase Auth e-mail + password. Customers: access code only — the Edge Function "customer-access"
+   checks the code in the database and returns a normal Supabase session for this device. The session is kept
+   on the device (localStorage, as supabase-js does) and every request is checked again on the server. */
+const isStaff = () => S.user && S.user.kind !== 'code' && (S.user.role === 'admin' || S.user.role === 'engineer');
+const isCode = () => S.user?.kind === 'code';
+const SESSION_KEY = 'emc.session.v1-2';
+const store = { get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } },
+  set(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+// v1.3 (review S2): no account or password is written in this page; a LOCAL test config.json may list test staff accounts
+async function staffSignIn(email, pw) {
+  let b; try { b = await http('POST', '/auth/v1/token?grant_type=password', { body: { email: email.trim(), password: pw } }); } catch { throw new Error(t('badLogin')); }
+  S.user = { id: b.user.id, email: b.user.email, kind: 'staff', access_token: b.access_token, refresh_token: b.refresh_token, expires_at: b.expires_at };
+  const p = (await api.get(`rfq_profiles?user_id=eq.${b.user.id}&select=role,display_name`))[0];
+  if (!p || !['admin', 'engineer'].includes(p.role)) { try { await http('POST', '/auth/v1/logout'); } catch {} S.user = null; throw new Error(t('staffOnlyLogin')); }
+  S.user.role = p.role; S.user.name = p.display_name || b.user.email; store.set(SESSION_KEY, S.user); await loadCommon();
+}
+function setCodeSession(r) {
+  Object.assign(S.user, { kind: 'code', role: 'customer', name: r.company_name, company: r.company_name, scope: r.scope, project_name: r.project_name, expires_at_code: r.expires_at, hint: r.code_hint });
+  store.set(SESSION_KEY, S.user);
+}
+async function codeSignIn(code) {
+  if (!code.trim()) throw new Error(t('enterCode'));
+  const r = await netFetch(CFG.url + '/functions/v1/customer-access', { method: 'POST', headers: { apikey: CFG.anon, 'content-type': 'application/json' }, body: JSON.stringify({ code }) });
+  if ([502, 504].includes(r.status)) throw new NetError('RFQ_NETWORK: HTTP ' + r.status);
+  const b = await r.json().catch(() => ({}));
+  if (!r.ok || !b.access_token) throw new Error(pick(msgOf(b.error) || msgOf('RFQ_ACCESS_CODE_INVALID')));
+  S.user = { id: b.user_id, kind: 'code', role: 'customer', access_token: b.access_token, refresh_token: b.refresh_token, expires_at: b.expires_at };
+  setCodeSession(b.portal); await loadCommon();
+}
+// v1.4: 'active' | 'ended' | 'offline'. Only the server's answer ends the session; a network problem never does.
+async function checkCodeSession(login) {
+  try {
+    const r = await api.rpc('rfq_access_code_session', { p_login: !!login });
+    if (r?.active) { setCodeSession(r); return 'active'; }
+  } catch (e) {
+    if (isNet(e)) return 'offline';
+    if (!/RFQ_ACCESS_CODE_ENDED|RFQ_SESSION_ENDED|JWT|jwt|token/.test(e.message)) { console.warn(e.message); return 'offline'; }
+  }
+  store.set(SESSION_KEY, null); return 'ended';
+}
+let ending = false;
+function sessionEnded(note) { if (ending) return; ending = true; S.user = null; store.set(SESSION_KEY, null); S.loginNote = note; setTimeout(() => { ending = false; go('login'); }, 0); }
+// v1.4: the device is signed out at once; if the server cannot be reached, the server-side sign-out is kept as
+// "pending" on this device and sent when the connection is back (the session would otherwise stay open on the server)
+const PENDING_KEY = 'emc.pending_signout.v1-4';
+async function serverSignOut(sess) {   // true when the server has ended (or had already ended) the session
+  let tok = sess.access_token;
+  try {
+    if (sess.expires_at && sess.expires_at * 1000 - Date.now() < 60000) tok = (await refreshTokens(sess)).access_token;
+  } catch (e) { if (isNet(e)) throw e; return true; }                // refresh refused: the session is already over
+  const call = async (path) => { const r = await netFetch(CFG.url + path, { method: 'POST', headers: { apikey: CFG.anon, authorization: 'Bearer ' + tok, 'content-type': 'application/json' }, body: '{}' });
+    if (TEMP_STATUS.includes(r.status) || r.status >= 500) throw new NetError('RFQ_NETWORK: HTTP ' + r.status); return r; };
+  if (sess.kind === 'code') await call('/rest/v1/rpc/rfq_access_code_sign_out');   // 403 ENDED = already over: fine
+  await call('/auth/v1/logout');
+  return true;
+}
+async function flushPendingSignOut() {
+  const p = store.get(PENDING_KEY); if (!p?.access_token) return;
+  try { if (await serverSignOut(p)) store.set(PENDING_KEY, null); } catch (e) { if (!isNet(e)) store.set(PENDING_KEY, null); }
+}
+async function signOut() {
+  const sess = S.user; S.user = null; store.set(SESSION_KEY, null); S.loginNote = null; S.offline = false;
+  if (sess?.access_token) {
+    try { await serverSignOut(sess); }
+    catch (e) { if (isNet(e)) { store.set(PENDING_KEY, { kind: sess.kind, access_token: sess.access_token, refresh_token: sess.refresh_token, expires_at: sess.expires_at }); S.loginNote = 'pending_signout'; } }
+  }
+  go('login');
+}
+
+/* ------------------------------------------------------------------ UI helpers */
+// v1.4: retry after a network problem: ask the server again whether the session is still valid, then reload the page data
+async function retryConnection() {
+  if (!S.user) return go('login');
+  try {
+    const st = isCode() ? await checkCodeSession(false) : 'active';
+    if (st === 'ended') return sessionEnded('ended');
+    if (st === 'offline') { S.offline = true; return render(); }
+    if (!S.products.length) await loadCommon();
+    S.offline = false;
+  } catch (e) { if (isNet(e)) S.offline = true; else console.warn(e); }
+  render();
+}
+function offlineNotice() { return `<div class="notice warn" id="offline" role="status"><b>${esc(t('offlineTitle'))}</b><span>${esc(t('offlineText'))}</span><div class="row"><button class="btn primary" id="retryNet">${esc(t('retry'))}</button></div></div>`; }
+function toast(msg, bad) { const d = document.createElement('div'); d.className = 'toast' + (bad ? ' bad' : ''); d.setAttribute('role', 'status'); d.textContent = msg; document.body.appendChild(d); setTimeout(() => d.remove(), bad ? 6000 : 2600); }
+function chip(st) { return `<span class="chip st-${esc(st)}">${esc(t('status.' + st))}</span>`; }
+function dialog(html, onMount) { const s = document.createElement('div'); s.className = 'scrim'; s.innerHTML = `<div class="dialog" role="dialog" aria-modal="true">${html}</div>`;
+  s.addEventListener('click', (e) => { if (e.target === s || e.target.closest('[data-close]')) s.remove(); }); document.body.appendChild(s); onMount && onMount(s); return s; }
+function langToggle() { return `<span class="langtoggle" role="group" aria-label="Language"><button data-lang="ar" aria-pressed="${S.lang === 'ar'}">عربي</button><button data-lang="en" aria-pressed="${S.lang === 'en'}">EN</button></span>`; }
+function envbar() { if (CFG.env === 'production') return ''; return `<div class="envbar"><b>● ${esc(CFG.env === 'staging' ? 'Staging' : t('env'))}</b><span>${esc(CFG.env === 'staging' ? t('stagingText') : t('envText'))}</span>${S.sys?.ledger ? `<button class="btn sm ghost" data-act="system">${esc(t('system'))}</button>` : ''}</div>`; }
+document.addEventListener('click', (e) => {
+  const l = e.target.closest('[data-lang]'); if (l) { S.lang = l.dataset.lang; try { localStorage.setItem('emc.lang', S.lang); } catch {} applyLang(); render(); return; }
+  const a = e.target.closest('[data-act="system"]'); if (a) { showSystem(); return; }
+  const n = e.target.closest('[data-go]'); if (n) { go(n.dataset.go, n.dataset.id ? { id: n.dataset.id } : {}); }
+});
+function showSystem() {
+  const x = S.sys || {};
+  dialog(`<div class="panel-head"><h2>${esc(t('systemTitle'))}</h2><div class="actions"><button class="btn sm" data-close>${esc(t('close'))}</button></div></div>
+    <dl class="kv"><dt>${esc(t('server'))}</dt><dd class="mono small">${esc(x.server || location.origin)}</dd>
+    <dt>${esc(t('engine'))}</dt><dd class="mono small">${esc(x.postgres || '—')}</dd>
+    <dt>Supabase Auth</dt><dd class="mono small">${esc(x.auth || '—')}</dd><dt>PostgREST</dt><dd class="mono small">${esc(x.postgrest || '—')}</dd><dt>Edge Function</dt><dd class="mono small">${esc(x.edge || '—')}</dd>
+    <dt>${esc(t('gate'))}</dt><dd>${esc(x.gate || '—')}</dd><dt>Ledger</dt><dd class="mono small">${esc(x.ledger || '—')}</dd></dl>
+    <div class="notice warn small">${esc(t('envText'))}</div>
+    ${(x.test_codes || []).length ? `<h3>${esc(t('testCodes'))}</h3><div class="stack small">${x.test_codes.map((c) => `<div>${esc(c.company)} · ${esc(t('scopeShort.' + c.scope))}: <span class="mono" dir="ltr" style="user-select:all">${esc(c.code)}</span></div>`).join('')}</div>` : ''}`);
+}
+
+/* ------------------------------------------------------------------ routing + shell */
+function go(view, params = {}) { S.view = view; S.params = params; render(); window.scrollTo(0, 0); }
+async function render() {
+  if (!CFG.anon) return;
+  if (S.view === 'login' || !S.user) return renderLogin();
+  if (isCode()) {
+    const st = await checkCodeSession(false);
+    if (st === 'ended') { S.user = null; S.loginNote = 'ended'; return go('login'); }
+    S.offline = st === 'offline';
+  }
+  const staffViews = { overview: vOverview, rfqs: vRfqs, companies: vCompanies, projects: vProjects, codes: vCodes, activity: vActivity, units: vUnits, rfq: vRfqStaff };
+  const custViews = { home: vHome, new: vNew, rfq: vRfqCustomer, form: vForm };
+  const views = isStaff() ? staffViews : custViews; const fn = views[S.view] || (isStaff() ? vOverview : vHome);
+  const navItems = isStaff() ? ['overview', 'rfqs', 'companies', 'projects', 'codes', 'activity', 'units'] : ['home', 'new'];
+  const cur = { rfq: isStaff() ? 'rfqs' : 'home', form: 'home' }[S.view] || S.view;
+  $('#app').innerHTML = `${envbar()}<div class="shell"><aside class="rail"><div class="brand"><div class="brand-mark">EMC</div><div><div class="brand-name">EMC</div><div class="brand-sub">${esc(t('portal'))}</div></div></div>
+    <nav class="nav" aria-label="Main">${navItems.map((n) => `<button data-go="${n}" ${n === cur ? 'aria-current="page"' : ''}>${esc(t('nav.' + n))}</button>`).join('')}</nav>
+    <div class="rail-foot"><div><div class="who">${esc(S.user.name || S.user.email)}</div><div class="role">${isCode() ? `${esc(t('scopeShort.' + S.user.scope))}${S.user.project_name ? ' · ' + esc(S.user.project_name) : ''}<br><span class="mono" dir="ltr">${esc(S.user.hint || '')}</span><br>${esc(t('validUntil'))} ${esc(fmtDay(S.user.expires_at_code))}` : esc(t('roles.' + S.user.role))}</div></div><button class="btn sm" id="signout" style="background:transparent;color:inherit;border-color:#ffffff33">${esc(t('signout'))}</button></div></aside>
+    <main class="main"><div class="topbar"><div class="title" id="ttl"></div><div class="actions">${langToggle()}<button class="btn sm" id="signout2">${esc(t('signout'))}</button></div></div><div class="content" id="content"><div class="muted">…</div></div></main></div>`;
+  $('#signout').onclick = signOut; $('#signout2').onclick = signOut;
+  if (S.offline) { $('#content').innerHTML = offlineNotice(); $('#retryNet').onclick = retryConnection; return; }
+  try { await fn($('#content'), $('#ttl')); }
+  catch (e) { console.error(e); if (isNet(e)) { S.offline = true; $('#content').innerHTML = offlineNotice(); $('#retryNet').onclick = retryConnection; }
+              else $('#content').innerHTML = `<div class="notice bad">${esc(errText(e))}</div>`; }
+}
+const setTitle = (el, eyebrow, title) => { el.innerHTML = `<div class="eyebrow">${esc(eyebrow)}</div><h1>${esc(title)}</h1>`; };
+
+/* ------------------------------------------------------------------ login */
+function renderLogin() {
+  const staff = S.params.mode === 'staff';
+  $('#app').innerHTML = `${envbar()}<div class="loginwrap"><section class="loginart"><canvas id="frost"></canvas>
+    <div class="brand" style="padding:0"><div class="brand-mark">EMC</div><div><div class="brand-name">${esc(t('company'))}</div><div class="brand-sub">${esc(t('portal'))}</div></div></div>
+    <div class="stack"><h1>${esc(t('loginHero'))}</h1><p style="max-width:52ch;margin:0">${esc(t('loginLead'))}</p></div>
+    <div class="spec"><span>SPIRAL · IQF · PLATE · CARTON · PIR · TURNKEY</span><span>−40 °C … +250 °C · NH₃ / CO₂ / HFO</span><span>15 ${S.lang === 'ar' ? 'منتجًا' : 'product families'} · 432 ${S.lang === 'ar' ? 'حقلًا فنيًا' : 'technical fields'}</span></div></section>
+    <section class="loginform"><div class="card">
+      <div class="row" style="justify-content:space-between"><h2>${esc(staff ? t('staffLogin') : t('codeLogin'))}</h2>${langToggle()}</div>
+      ${staff ? `<form id="lf" class="stack" novalidate>
+        <label class="f" for="lem">${esc(t('email'))}<input id="lem" type="email" autocomplete="username" required></label>
+        <label class="f" for="lpw">${esc(t('password'))}<input id="lpw" type="password" autocomplete="current-password" required></label>
+        <div id="lerr" class="small" style="color:var(--bad)" role="alert"></div>
+        <button class="btn primary" type="submit">${esc(t('signinBtn'))}</button></form>
+        ${CFG.demoAccounts.length ? `<div class="demo-accounts"><div class="eyebrow">${esc(t('demoAccounts'))}</div>
+        ${CFG.demoAccounts.map((u) => `<button type="button" data-fill="${esc(u.email)}|${esc(u.pw)}"><span><b>${esc(t('roles.' + u.role))}</b> · ${esc(u.name)}</span><span class="em">${esc(u.email)} · ${esc(u.pw)}</span></button>`).join('')}</div>` : ''}
+        <button class="btn ghost" id="toCode">← ${esc(t('customerLogin'))}</button>`
+      : `${S.loginNote === 'ended' ? `<div class="notice warn small">${esc(pick(msgOf('RFQ_ACCESS_CODE_ENDED')))}</div>` : ''}${S.loginNote === 'pending_signout' ? `<div class="notice info small" id="pendingNote">${esc(t('pendingSignOut'))}</div>` : ''}
+        <form id="cf" class="stack" novalidate>
+        <label class="f" for="acode">${esc(t('accessCode'))}<input id="acode" class="codeinput" type="text" dir="ltr" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="SEARA-XXXX-XXXX-XXXX-XXXX" required></label>
+        <div id="cerr" class="small" style="color:var(--bad)" role="alert"></div>
+        <button class="btn primary big" type="submit">${esc(t('enter'))}</button></form>
+        <button class="linkbtn" id="toStaff">${esc(t('staffLogin'))}</button>`}
+    </div></section></div>`;
+  frost($('#frost'));
+  if (staff) {
+    $('#lf').onsubmit = async (e) => { e.preventDefault(); $('#lerr').textContent = ''; try { await staffSignIn($('#lem').value, $('#lpw').value); go('overview'); } catch (er) { $('#lerr').textContent = errText(er); } };
+    document.querySelectorAll('[data-fill]').forEach((b) => b.onclick = () => { const [em, pw] = b.dataset.fill.split('|'); $('#lem').value = em; $('#lpw').value = pw; $('#lpw').focus(); });
+    $('#toCode').onclick = () => go('login', {});
+  } else {
+    $('#cf').onsubmit = async (e) => { e.preventDefault(); $('#cerr').textContent = ''; const b = $('#cf button'); b.disabled = true;
+      try { await codeSignIn($('#acode').value); S.loginNote = null; go('home'); } catch (er) { b.disabled = false; $('#cerr').textContent = errText(er); } };
+    $('#toStaff').onclick = () => go('login', { mode: 'staff' });
+    $('#acode').focus();
+  }
+}
+function frost(cv) { // quiet ambient: drifting frost particles over a cold-room grid
+  if (!cv) return; const c = cv.getContext('2d'); const dpr = Math.min(2, devicePixelRatio || 1); let W, H, pts;
+  const size = () => { W = cv.clientWidth; H = cv.clientHeight; cv.width = W * dpr; cv.height = H * dpr; c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    pts = Array.from({ length: Math.round(W * H / 9000) }, () => ({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.6 + .3, v: Math.random() * .25 + .05 })); };
+  size(); addEventListener('resize', size);
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const draw = () => { c.clearRect(0, 0, W, H); c.strokeStyle = 'rgba(120,190,200,.08)'; c.lineWidth = 1;
+    for (let x = 0; x < W; x += 48) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H); c.stroke(); } for (let y = 0; y < H; y += 48) { c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); }
+    c.fillStyle = 'rgba(200,236,240,.7)'; for (const p of pts) { c.beginPath(); c.arc(p.x, p.y, p.r, 0, 6.3); c.fill(); if (!still) { p.y += p.v; p.x += Math.sin(p.y / 40) * .15; if (p.y > H) { p.y = -2; p.x = Math.random() * W; } } }
+    if (!still && document.body.contains(cv)) requestAnimationFrame(draw); };
+  draw();
+}
+
+/* ------------------------------------------------------------------ shared data */
+const prodName = (p) => p ? (S.lang === 'ar' ? p.name_ar : p.name_en) : '';
+const prodById = (id) => S.products.find((p) => p.id === id);
+async function loadRfqs({ status, id } = {}) {
+  const rows = await api.get('rfq_rfqs?select=id,rfq_number,status,current_revision_no,updated_at,created_at,project_id,rfq_projects(project_name,rfq_customers(company_name)),rfq_revisions(revision_no,rfq_revision_equipment(product_id,item_no))&order=updated_at.desc'
+    + (status ? '&status=eq.' + status : '') + (id ? '&id=eq.' + id : ''));
+  return rows.map((q) => { const rv = [...(q.rfq_revisions || [])].sort((a, b) => b.revision_no - a.revision_no)[0]; const eq = [...(rv?.rfq_revision_equipment || [])].sort((a, b) => a.item_no - b.item_no)[0];
+    return { ...q, project_name: q.rfq_projects?.project_name, company_name: q.rfq_projects?.rfq_customers?.company_name, product_id: eq?.product_id }; });
+}
+function rfqTable(rows, cols = ['rfq_number', 'product', 'project', 'company', 'status', 'updated']) {
+  if (!rows.length) return `<div class="empty">${esc(t('noRows'))}</div>`;
+  const head = { rfq_number: t('rfqNo'), product: t('product'), project: t('project'), company: t('customer'), status: t('statusL'), updated: t('updated') };
+  const cell = (r, c) => ({ rfq_number: `<span class="mono">${esc(r.rfq_number)}</span>`, product: esc(prodName(prodById(r.product_id))), project: esc(r.project_name), company: esc(r.company_name), status: chip(r.status), updated: `<span class="small">${esc(fmtDate(r.updated_at))}</span>` }[c]);
+  return `<div class="tablewrap"><table><thead><tr>${cols.map((c) => `<th>${esc(head[c])}</th>`).join('')}</tr></thead><tbody>${rows.map((r) => `<tr class="click" data-go="rfq" data-id="${esc(r.id)}" tabindex="0">${cols.map((c) => `<td>${cell(r, c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+async function loadFields(productId) { const k = 'f:' + productId; if (!S.cache[k]) S.cache[k] = await api.get(`rfq_field_definitions?product_id=eq.${productId}&active=is.true&select=id,field_key,label_en,label_ar,section,data_type,requirement,help_en,help_ar,options_json,condition_json,allow_not_known,unit,sort_order&order=sort_order`); return S.cache[k]; }
+const secName = (s) => S.lang === 'ar' ? (SECTION_AR[s] || s) : s;
+const reqTag = (r) => ({ required: `<span class="tag req">${esc(t('req'))}</span>`, recommended: `<span class="tag rec">${esc(t('rec'))}</span>`, optional: `<span class="tag">${esc(t('opt'))}</span>`, conditional: `<span class="tag">${esc(t('cond'))}</span>`, engineering: `<span class="tag">${esc(t('eng'))}</span>` }[r] || '');
+function fmtValue(f, v) {
+  if (v === null || v === undefined) return '<span class="muted">—</span>';
+  if (v && typeof v === 'object' && v.status === 'not_known') return esc(t('notKnown'));
+  const opt = (x) => { const o = (f.options_json || []).find((o) => o.value === x); return o ? (S.lang === 'ar' ? (o.ar || o.en) : o.en) : x; };
+  if (f.data_type === 'boolean') return esc(v ? t('yes') : t('no'));
+  if (f.data_type === 'select') return typeof v === 'object' ? esc(opt(v.value) + (v.text ? ' — ' + v.text : '')) : esc(opt(v));
+  if (f.data_type === 'multiselect') return esc((Array.isArray(v) ? v : []).map((x) => typeof x === 'object' ? opt(x.value) : opt(x)).join('، '));
+  if (typeof v === 'object') return `<span class="mono small">${esc(JSON.stringify(v))}</span>`;
+  return `<span class="answer-ro">${esc(v)}</span>`;
+}
+
+/* ------------------------------------------------------------------ staff views */
+async function vOverview(el, ttl) {
+  setTitle(ttl, t('staffHome'), t('welcome') + '، ' + (S.user.name || ''));
+  const rows = await loadRfqs();
+  const by = (s) => rows.filter((r) => r.status === s).length;
+  const counts = { c: (await api.get('rfq_customers?select=id')).length, p: (await api.get('rfq_projects?select=id')).length }; counts.i = (await api.rpc('rfq_admin_list_access_codes', {}, 'rows')).filter((r) => r.state === 'active').length;
+  el.innerHTML = `<div class="kpis">${['submitted', 'under_review', 'needs_info', 'draft', 'completed'].map((s) => `<button class="kpi" data-go="rfqs" data-id="${s}"><span class="l">${chip(s)}</span><span class="n">${by(s)}</span></button>`).join('')}
+    <button class="kpi" data-go="companies"><span class="l">${esc(t('nav.companies'))}</span><span class="n">${counts.c}</span></button><button class="kpi" data-go="codes"><span class="l">${esc(t('activeCodes'))}</span><span class="n">${counts.i}</span></button></div>
+    <section class="panel"><div class="panel-head"><h2>${esc(t('recent'))}</h2><div class="actions"><button class="btn sm" data-go="rfqs">${esc(t('nav.rfqs'))}</button></div></div>${rfqTable(rows.slice(0, 8))}</section>`;
+}
+async function vRfqs(el, ttl) {
+  setTitle(ttl, t('staffHome'), t('nav.rfqs'));
+  const f = S.params.id || ''; const rows = await loadRfqs({ status: f });
+  el.innerHTML = `<section class="panel"><div class="panel-head"><div class="row">${['', 'submitted', 'under_review', 'needs_info', 'draft', 'completed', 'cancelled'].map((s) => `<button class="btn sm ${s === f ? 'primary' : ''}" data-go="rfqs" data-id="${s}">${esc(s ? t('status.' + s) : t('all'))}</button>`).join('')}</div></div>${rfqTable(rows)}</section>`;
+}
+async function vCompanies(el, ttl) {
+  setTitle(ttl, t('staffHome'), t('nav.companies'));
+  const rows = (await api.get('rfq_customers?select=*,rfq_projects(count)&order=created_at.desc')).map((c) => ({ ...c, nproj: c.rfq_projects?.[0]?.count ?? 0 }));
+  el.innerHTML = `<section class="panel"><div class="panel-head"><h2>${esc(t('addCompany'))}</h2></div>
+    <form id="cf" class="grid2" novalidate><label class="f" for="c1">${esc(t('companyName'))}<input id="c1" type="text" required></label><label class="f" for="c2">${esc(t('country'))}<input id="c2" type="text"></label>
+    <label class="f" for="c3">${esc(t('city'))}<input id="c3" type="text"></label><label class="f" for="c4">${esc(t('phone'))}<input id="c4" type="text"></label><div class="row" style="align-self:end"><button class="btn primary">${esc(t('create'))}</button></div></form></section>
+    <section class="panel"><div class="tablewrap"><table><thead><tr><th>${esc(t('companyName'))}</th><th>${esc(t('country'))}</th><th>${esc(t('city'))}</th><th>${esc(t('phone'))}</th><th>${esc(t('nav.projects'))}</th><th></th></tr></thead><tbody>
+    ${rows.map((r) => `<tr><td><b>${esc(r.company_name)}</b></td><td>${esc(r.country)}</td><td>${esc(r.city)}</td><td class="mono small">${esc(r.phone)}</td><td class="mono">${r.nproj}</td><td><button class="btn sm" data-go="codes" data-id="${esc(r.id)}">${esc(t('createCode'))}</button></td></tr>`).join('') || `<tr><td colspan="6" class="empty">${esc(t('noRows'))}</td></tr>`}</tbody></table></div></section>`;
+  $('#cf').onsubmit = async (e) => { e.preventDefault(); try { if (!$('#c1').value.trim()) throw new Error(t('companyName') + '?'); await api.insert('rfq_customers', { company_name: $('#c1').value.trim(), country: $('#c2').value.trim(), city: $('#c3').value.trim(), phone: $('#c4').value.trim() }); toast('✓ ' + $('#c1').value); render(); } catch (er) { toast(errText(er), true); } };
+}
+const PTYPES = ['New', 'Expansion', 'Replacement', 'Upgrade', 'Turnkey']; const SITES = ['New site', 'Existing plant', 'Under construction'];
+async function vProjects(el, ttl) {
+  setTitle(ttl, t('staffHome'), t('nav.projects'));
+  const cos = await api.get('rfq_customers?select=id,company_name&order=company_name');
+  const rows = (await api.get('rfq_projects?select=*,rfq_customers(company_name),rfq_rfqs(count),rfq_project_members(count)&rfq_project_members.revoked_at=is.null&order=created_at.desc')).map((p) => ({ ...p, company_name: p.rfq_customers?.company_name, nrfq: p.rfq_rfqs?.[0]?.count ?? 0, nmem: p.rfq_project_members?.[0]?.count ?? 0 }));
+  el.innerHTML = `<section class="panel"><div class="panel-head"><h2>${esc(t('addProject'))}</h2></div>
+    <form id="pf" class="grid2" novalidate><label class="f" for="p1">${esc(t('customer'))}<select id="p1">${cos.map((c) => `<option value="${esc(c.id)}">${esc(c.company_name)}</option>`).join('')}</select></label>
+    <label class="f" for="p2">${esc(t('projectName'))}<input id="p2" type="text" required></label><label class="f" for="p3">${esc(t('projectType'))}<select id="p3">${PTYPES.map((x) => `<option value="${x}">${esc(t('type.' + x))}</option>`).join('')}</select></label>
+    <label class="f" for="p4">${esc(t('siteCountry'))}<input id="p4" type="text"></label><label class="f" for="p5">${esc(t('siteCity'))}<input id="p5" type="text"></label><div class="row" style="align-self:end"><button class="btn primary">${esc(t('create'))}</button></div></form></section>
+    <section class="panel"><div class="tablewrap"><table><thead><tr><th>${esc(t('projectName'))}</th><th>${esc(t('customer'))}</th><th>${esc(t('projectType'))}</th><th>${esc(t('siteCity'))}</th><th>${esc(t('contactName'))}</th><th>${esc(t('nav.rfqs'))}</th><th>${esc(t('members'))}</th></tr></thead><tbody>
+    ${rows.map((r) => `<tr><td><b>${esc(r.project_name)}</b></td><td>${esc(r.company_name)}</td><td>${esc(t('type.' + r.project_type))}</td><td>${esc([r.site_city, r.site_country].filter(Boolean).join('، '))}</td><td class="small">${esc(r.contact_name || '—')}<div class="muted mono small">${esc(r.contact_email || '')}</div></td><td class="mono">${r.nrfq}</td><td class="mono">${r.nmem}</td></tr>`).join('') || `<tr><td colspan="7" class="empty">${esc(t('noRows'))}</td></tr>`}</tbody></table></div></section>`;
+  $('#pf').onsubmit = async (e) => { e.preventDefault(); try { if (!$('#p2').value.trim()) throw new Error(t('projectName') + '?'); await api.insert('rfq_projects', { customer_id: $('#p1').value, project_name: $('#p2').value.trim(), project_type: $('#p3').value, site_country: $('#p4').value.trim(), site_city: $('#p5').value.trim() }); toast('✓ ' + $('#p2').value); render(); } catch (er) { toast(errText(er), true); } };
+}
+const CODE_CHIP = { active: 'completed', expired: 'cancelled', revoked: 'cancelled', replaced: 'superseded' };
+const codeChip = (st) => `<span class="chip st-${CODE_CHIP[st] || 'draft'}">${esc(t('codeState.' + st))}</span>`;
+const fmtDay = (d) => { if (!d) return '—'; try { return new Intl.DateTimeFormat(S.lang === 'ar' ? 'ar-EG' : 'en-GB', { dateStyle: 'medium' }).format(new Date(d)); } catch { return d; } };
+const dayInput = (days) => new Date(Date.now() + days * 864e5).toISOString().slice(0, 10);
+const endOfDay = (v) => new Date(v + 'T23:59:00').toISOString();
+function shareText(code, company, expires) {
+  return S.lang === 'ar'
+    ? `مرحبًا،\nهذا كود الدخول إلى بوابة EMC لطلبات العروض الفنية الخاصة بشركة ${company}:\n\n${code}\n\nافتح الرابط وأدخل الكود:\n${CFG.portal}\n\nالكود صالح حتى ${fmtDay(expires)}. من فضلك لا تشاركه مع أي شخص خارج شركتكم.\n— فريق EMC`
+    : `Hello,\nHere is your access code for the EMC Technical RFQ Portal for ${company}:\n\n${code}\n\nOpen the link and enter the code:\n${CFG.portal}\n\nThe code is valid until ${fmtDay(expires)}. Please do not share it outside your company.\n— EMC team`;
+}
+function showNewCode(r, company, scopeText, expires, maxd = 3) {
+  const msg = shareText(r.access_code, company, expires);
+  dialog(`<h2>${esc(t('newCodeTitle'))}</h2><div class="notice warn small">${esc(t('codeOnce'))}</div>
+    <div class="notice info small">${esc(t('localNote'))}</div>
+    <div class="codebig" id="tok" dir="ltr">${esc(r.access_code)}</div>
+    <dl class="kv small"><dt>${esc(t('customer'))}</dt><dd>${esc(company)}</dd><dt>${esc(t('scopeL'))}</dt><dd>${esc(scopeText)}</dd><dt>${esc(t('validUntil'))}</dt><dd>${esc(fmtDay(expires))}</dd><dt>${esc(t('maxDevices'))}</dt><dd class="mono">${maxd}</dd></dl>
+    <label class="f" for="msgtxt">${esc(t('msgText'))}<textarea id="msgtxt" rows="8" readonly>${esc(msg)}</textarea></label>
+    <div class="row"><button class="btn primary" id="cpc">${esc(t('copyCode'))}</button><button class="btn" id="cpm">${esc(t('copyMsg'))}</button>
+      <a class="btn" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">WhatsApp</a>
+      <a class="btn" href="mailto:?subject=${encodeURIComponent('EMC — ' + t('accessCode'))}&body=${encodeURIComponent(msg)}">Email</a>
+      <button class="btn ghost" data-close>${esc(t('close'))}</button></div>`, (d) => {
+    const copy = async (txt, el) => { try { await navigator.clipboard.writeText(txt); toast(t('copied')); } catch { const s = getSelection(); const rg = document.createRange(); rg.selectNodeContents(el); s.removeAllRanges(); s.addRange(rg); toast(S.lang === 'ar' ? 'اضغط Ctrl+C للنسخ' : 'Press Ctrl+C to copy'); } };
+    $('#cpc', d).onclick = () => copy(r.access_code, $('#tok', d)); $('#cpm', d).onclick = () => copy(msg, $('#msgtxt', d)); });
+}
+function askDate(title, note, days, onOk) {
+  dialog(`<h2>${esc(title)}</h2>${note ? `<p class="small">${esc(note)}</p>` : ''}<label class="f" for="dd">${esc(t('expiresOn'))}<input id="dd" type="date" value="${dayInput(days)}" min="${dayInput(1)}" max="${dayInput(365)}"></label>
+    <div id="derr" class="small" style="color:var(--bad)" role="alert"></div><div class="row"><button class="btn primary" id="dok">${esc(t('confirm'))}</button><button class="btn" data-close>${esc(t('cancel'))}</button></div>`,
+    (d) => { $('#dok', d).onclick = async () => { try { await onOk(endOfDay($('#dd', d).value)); d.remove(); } catch (er) { $('#derr', d).textContent = errText(er); } }; });
+}
+async function vCodes(el, ttl) {
+  setTitle(ttl, t('staffHome'), t('nav.codes'));
+  const cos = await api.get('rfq_customers?select=id,company_name&order=company_name');
+  const projs = await api.get('rfq_projects?select=id,customer_id,project_name&order=project_name');
+  const lim = Object.fromEntries((await api.rpc('rfq_admin_access_code_limits', {})).map((x) => [x.code_id, x]));
+  const rows = (await api.rpc('rfq_admin_list_access_codes', {}, 'rows')).map((r) => ({ ...r, max_devices: lim[r.code_id]?.max_devices ?? 3 }));
+  const pre = cos.find((c) => c.id === S.params.id)?.id || cos[0]?.id;
+  el.innerHTML = `<section class="panel"><div class="panel-head"><h2>${esc(t('newCode'))}</h2></div>
+    <form id="kf" class="grid2" novalidate>
+      <label class="f" for="k1">${esc(t('customer'))}<select id="k1">${cos.map((c) => `<option value="${esc(c.id)}" ${c.id === pre ? 'selected' : ''}>${esc(c.company_name)}</option>`).join('')}</select></label>
+      <div class="f"><span>${esc(t('scopeL'))}</span><div class="opts"><label><input type="radio" name="ks" value="company" checked> ${esc(t('scopeCompany'))}</label><label><input type="radio" name="ks" value="project"> ${esc(t('scopeProject'))}</label></div></div>
+      <label class="f" for="k2">${esc(t('project'))}<select id="k2" disabled></select></label>
+      <label class="f" for="k3">${esc(t('expiresOn'))}<input id="k3" type="date" value="${dayInput(30)}" min="${dayInput(1)}" max="${dayInput(365)}"></label>
+      <label class="f" for="k4">${esc(t('labelL'))}<input id="k4" type="text" maxlength="120" placeholder="${esc(t('labelPh'))}"></label>
+      <label class="f" for="k5">${esc(t('maxDevices'))}<input id="k5" type="number" min="1" max="50" value="3"></label>
+      <div class="row" style="align-self:end"><button class="btn primary" type="submit">${esc(t('createCode'))}</button></div></form>
+    <p class="muted small" style="margin:0">${esc(t('codeNote'))}</p></section>
+    <section class="panel"><h2>${esc(t('codes'))}</h2><div class="tablewrap"><table><thead><tr><th>${esc(t('codeCol'))}</th><th>${esc(t('customer'))}</th><th>${esc(t('scopeL'))}</th><th>${esc(t('created'))}</th><th>${esc(t('expiresOn'))}</th><th>${esc(t('statusL'))}</th><th>${esc(t('devices'))}</th><th>${esc(t('lastUsed'))}</th><th></th></tr></thead><tbody>
+    ${rows.map((r) => `<tr><td><span class="mono" dir="ltr">${esc(r.code_hint)}</span>${r.label ? `<div class="muted small">${esc(r.label)}</div>` : ''}</td><td><b>${esc(r.company_name)}</b></td>
+      <td class="small">${r.project_id ? esc(r.project_name) : esc(t('scopeShort.company'))}</td><td class="small">${esc(fmtDay(r.created_at))}<div class="muted">${esc(r.created_by_name || '')}</div></td>
+      <td class="small">${esc(fmtDay(r.expires_at))}</td><td>${codeChip(r.state)}</td><td class="mono" dir="ltr">${r.active_devices} / ${r.max_devices}</td><td class="small">${esc(r.last_used_at ? fmtDate(r.last_used_at) : '—')}</td>
+      <td><div class="row" style="flex-wrap:nowrap">${r.state !== 'replaced' ? `<button class="btn sm" data-kr="${esc(r.code_id)}">${esc(t('replaceCode'))}</button>` : ''}${r.state === 'active' ? `<button class="btn sm" data-ke="${esc(r.code_id)}">${esc(t('changeExpiry'))}</button><button class="btn sm" data-km="${esc(r.code_id)}">${esc(t('maxDevicesShort'))}</button><button class="btn sm danger" data-kx="${esc(r.code_id)}">${esc(t('revokeCode'))}</button>` : ''}</div></td></tr>`).join('') || `<tr><td colspan="9" class="empty">${esc(t('noRows'))}</td></tr>`}</tbody></table></div></section>`;
+  const fillProjects = () => { const cid = $('#k1').value; const ps = projs.filter((p) => p.customer_id === cid); $('#k2').innerHTML = ps.map((p) => `<option value="${esc(p.id)}">${esc(p.project_name)}</option>`).join(''); };
+  const scope = () => el.querySelector('[name=ks]:checked').value;
+  fillProjects(); $('#k1').onchange = fillProjects; el.querySelectorAll('[name=ks]').forEach((r) => r.onchange = () => { $('#k2').disabled = scope() !== 'project'; });
+  $('#kf').onsubmit = async (e) => { e.preventDefault();
+    try { const company = $('#k1').selectedOptions[0].textContent; const proj = scope() === 'project' ? $('#k2').value : null;
+      if (scope() === 'project' && !proj) throw new Error(t('noProjectForCompany'));
+      const exp = endOfDay($('#k3').value);
+      const maxd = parseInt($('#k5').value, 10); if (!(maxd >= 1 && maxd <= 50)) throw new Error(pick(msgOf('RFQ_ACCESS_CODE_MAX_DEVICES')));
+      const r = (await api.rpc('rfq_admin_create_access_code', { p_customer_id: $('#k1').value, p_project_id: proj, p_expires_at: tsArg(exp), p_label: $('#k4').value.trim() || null }, 'rows'))[0];
+      if (maxd !== 3) await api.rpc('rfq_admin_set_access_code_max_devices', { p_code_id: r.code_id, p_max_devices: maxd });
+      await vCodes(el, ttl); showNewCode(r, company, proj ? projs.find((p) => p.id === proj).project_name : t('scopeCompany'), exp, maxd);
+    } catch (er) { toast(errText(er), true); } };
+  const byId = (id) => rows.find((r) => r.code_id === id);
+  el.querySelectorAll('[data-kr]').forEach((b) => b.onclick = () => { const r = byId(b.dataset.kr);
+    askDate(t('replaceCode') + ' · ' + r.code_hint, t('replaceNote'), 30, async (exp) => { const n = (await api.rpc('rfq_admin_replace_access_code', { p_code_id: r.code_id, p_expires_at: tsArg(exp) }, 'rows'))[0];
+      await vCodes(el, ttl); showNewCode(n, r.company_name, r.project_id ? r.project_name : t('scopeCompany'), exp, r.max_devices); }); });
+  el.querySelectorAll('[data-km]').forEach((b) => b.onclick = () => { const r = byId(b.dataset.km);
+    dialog(`<h2>${esc(t('maxDevices'))} · <span class="mono" dir="ltr">${esc(r.code_hint)}</span></h2><p class="small">${esc(t('maxDevicesNote'))}</p>
+      <label class="f" for="mdv">${esc(t('maxDevices'))}<input id="mdv" type="number" min="1" max="50" value="${r.max_devices}"></label><p class="small muted">${esc(t('devices'))}: ${r.active_devices}</p>
+      <div id="mderr" class="small" style="color:var(--bad)" role="alert"></div><div class="row"><button class="btn primary" id="mdok">${esc(t('confirm'))}</button><button class="btn" data-close>${esc(t('cancel'))}</button></div>`,
+      (d) => { $('#mdok', d).onclick = async () => { try { await api.rpc('rfq_admin_set_access_code_max_devices', { p_code_id: r.code_id, p_max_devices: parseInt($('#mdv', d).value, 10) }); d.remove(); toast('✓'); vCodes(el, ttl); } catch (er) { $('#mderr', d).textContent = errText(er); } }; }); });
+  el.querySelectorAll('[data-ke]').forEach((b) => b.onclick = () => { const r = byId(b.dataset.ke);
+    askDate(t('changeExpiry') + ' · ' + r.code_hint, '', 60, async (exp) => { await api.rpc('rfq_admin_set_access_code_expiry', { p_code_id: r.code_id, p_expires_at: tsArg(exp) }, 'void'); toast('✓'); vCodes(el, ttl); }); });
+  el.querySelectorAll('[data-kx]').forEach((b) => b.onclick = () => { const r = byId(b.dataset.kx);
+    dialog(`<h2>${esc(t('revokeCode'))} · <span class="mono" dir="ltr">${esc(r.code_hint)}</span></h2><p>${esc(t('revokeConfirm'))}</p><div class="row"><button class="btn danger" id="kyes">${esc(t('revokeCode'))}</button><button class="btn" data-close>${esc(t('cancel'))}</button></div>`,
+      (d) => { $('#kyes', d).onclick = async () => { try { await api.rpc('rfq_admin_revoke_access_code', { p_code_id: r.code_id }, 'void'); d.remove(); toast('✓ ' + t('codeState.revoked')); vCodes(el, ttl); } catch (er) { toast(errText(er), true); } }; }); });
+}
+async function vActivity(el, ttl) {
+  setTitle(ttl, t('staffHome'), t('nav.activity'));
+  const f = S.params.id || '';
+  const where = { login: "a.action in ('access_code_redeemed','access_code_login','access_code_signed_out')", failed: "a.action = 'access_code_failed'", admin: "a.action in ('access_code_created','access_code_revoked','access_code_replaced','access_code_expiry_changed','access_code_expired')" }[f] || "a.action like 'access_code%'";
+  const acts = { login: ['access_code_redeemed', 'access_code_login', 'access_code_signed_out'], failed: ['access_code_failed', 'access_code_device_limit'], admin: ['access_code_created', 'access_code_revoked', 'access_code_replaced', 'access_code_expiry_changed', 'access_code_expired', 'access_code_max_devices_changed'] }[f];
+  const raw = await api.get('rfq_audit_log?select=id,action,created_at,metadata,entity_id,actor_user_id' + (acts ? '&action=in.(' + acts.join(',') + ')' : '&action=like.access_code*') + '&order=created_at.desc,id.desc&limit=300');
+  const cos = Object.fromEntries((await api.get('rfq_customers?select=id,company_name')).map((c) => [c.id, c.company_name]));
+  const actors = [...new Set(raw.map((r) => r.actor_user_id).filter(Boolean))];
+  const profs = actors.length ? Object.fromEntries((await api.get('rfq_profiles?select=user_id,display_name,role&user_id=in.' + inList(actors))).map((p) => [p.user_id, p])) : {};
+  const rows = raw.map((r) => ({ ...r, company_name: cos[r.entity_id], who: profs[r.actor_user_id]?.display_name, role: profs[r.actor_user_id]?.role }));
+  el.innerHTML = `<section class="panel"><div class="panel-head"><div class="row">${[['', t('all')], ['login', t('actLogins')], ['failed', t('actFailed')], ['admin', t('actAdmin')]].map(([k, l]) => `<button class="btn sm ${k === f ? 'primary' : ''}" data-go="activity" data-id="${k}">${esc(l)}</button>`).join('')}</div></div>
+    <div class="tablewrap"><table><thead><tr><th>${esc(t('when'))}</th><th>${esc(t('event'))}</th><th>${esc(t('customer'))}</th><th>${esc(t('codeCol'))}</th><th>${esc(t('by'))}</th></tr></thead><tbody>
+    ${rows.map((r) => `<tr><td class="small">${esc(fmtDate(r.created_at))}</td><td>${r.action === 'access_code_failed' ? `<span class="chip st-cancelled">${esc(actName(r.action))}</span>` : esc(actName(r.action))}</td>
+      <td>${esc(r.company_name || '—')}</td><td class="mono small" dir="ltr">${esc(r.metadata?.code_hint || r.metadata?.new_code_hint || '—')}${r.metadata?.new_code_hint ? ' → ' + esc(r.metadata.new_code_hint) : ''}</td>
+      <td class="small">${r.role === 'admin' || r.role === 'engineer' ? esc(r.who) : r.action === 'access_code_expired' ? esc(t('system')) : esc(t('customerDevice'))}</td></tr>`).join('') || `<tr><td colspan="5" class="empty">${esc(t('noRows'))}</td></tr>`}</tbody></table></div></section>`;
+}
+async function vUnits(el, ttl) {
+  setTitle(ttl, t('staffHome'), t('nav.units'));
+  const rows = await api.rpc('rfq_staff_unit_review_report', { p_open_only: true }, 'rows');
+  el.innerHTML = `<section class="panel"><h2>${esc(t('unitReview'))}</h2>${rows.length ? `<div class="tablewrap"><table><thead><tr><th>${esc(t('rfqNo'))}</th><th>${esc(t('customer'))}</th><th>Field</th><th>Value</th><th>Unit</th></tr></thead><tbody>${rows.map((r) => `<tr><td class="mono">${esc(r.rfq_number)}</td><td>${esc(r.customer_name)}</td><td>${esc(r.field_label_en)}</td><td class="mono small">${esc(JSON.stringify(r.submitted_value))}</td><td>${esc(r.recorded_unit || '—')}</td></tr>`).join('')}</tbody></table></div>` : `<div class="empty">${esc(t('unitReviewEmpty'))}</div>`}
+    <p class="muted small">${esc(S.lang === 'ar' ? 'كل فتح لهذا التقرير يُسجَّل في سجل التدقيق (تصميم #33 الخيار B).' : 'Every opening of this report is written to the audit log (design #33, option B).')}</p></section>`;
+}
+async function rfqData(id) {
+  const q = (await loadRfqs({ id }))[0]; if (!q) throw new Error('RFQ_NOT_FOUND');
+  const revs = await api.get(`rfq_revisions?rfq_id=eq.${id}&select=id,revision_no,status,submitted_at,info_request_message,info_requested_at,customer_declaration,created_at&order=revision_no`);
+  return { q, revs };
+}
+async function answersBlock(rev, editable = false) {
+  const items = await api.get(`rfq_revision_equipment?revision_id=eq.${rev.id}&select=id,product_id,item_no,quantity&order=item_no`);
+  let html = '';
+  for (const it of items) {
+    const fields = await loadFields(it.product_id); const ans = await api.get(`rfq_answers?revision_equipment_id=eq.${it.id}&select=field_id,value_json`);
+    const A = Object.fromEntries(ans.map((a) => [a.field_id, a.value_json])); const secs = [...new Set(fields.map((f) => f.section))];
+    html += `<div class="stack"><div class="row"><h3>${esc(t('item'))} ${it.item_no} · ${esc(prodName(prodById(it.product_id)))}</h3><span class="muted small">${esc(t('qty'))} ${it.quantity} · ${esc(t('answered'))} ${ans.length}/${fields.length}</span></div>
+      ${secs.map((s) => { const fs = fields.filter((f) => f.section === s && (A[f.id] !== undefined)); if (!fs.length) return ''; return `<div class="stack"><div class="eyebrow">${esc(secName(s))}</div><dl class="kv">${fs.map((f) => `<dt>${esc(pick(f, 'label_en', 'label_ar'))}</dt><dd>${fmtValue(f, A[f.id])}</dd>`).join('')}</dl></div>`; }).join('')}</div>`;
+  }
+  return html || `<div class="empty">${esc(t('noRows'))}</div>`;
+}
+function stepper(q, revs) {
+  const cur = revs[revs.length - 1]; const flow = ['draft', 'submitted', 'under_review', 'completed']; const st = q.status;
+  const idx = st === 'needs_info' ? 2 : st === 'cancelled' ? -1 : flow.indexOf(st);
+  return `<div class="steps" aria-label="Progress">${flow.map((s, i) => `<div class="step ${i < idx || (st === 'completed' && i === idx) ? 'done' : i === idx ? 'now' : ''}"><span class="dot">${i < idx || st === 'completed' ? '✓' : i + 1}</span>${esc(t('status.' + s))}</div>`).join('')}
+    ${st === 'needs_info' ? `<div class="step warn now"><span class="dot">!</span>${esc(t('status.needs_info'))}</div>` : ''}${st === 'cancelled' ? `<div class="step"><span class="dot">×</span>${esc(t('status.cancelled'))}</div>` : ''}</div>`;
+}
+const ACT = { ar: { answer_changed: 'تعديل إجابة', emc_status_changed: 'تغيير الحالة بواسطة EMC', equipment_added: 'إضافة معدة', invitation_accepted: 'قبول دعوة', invitation_created: 'إنشاء دعوة', project_updated: 'تحديث بيانات المشروع', revision_created: 'إنشاء إصدار جديد', revision_submitted: 'إرسال الإصدار', rfq_created: 'إنشاء الطلب', role_changed: 'تغيير الصلاحية', unit_review_report_viewed: 'فتح تقرير الوحدات', access_code_created: 'إنشاء كود دخول', access_code_redeemed: 'دخول بالكود من جهاز جديد', access_code_login: 'فتح البوابة بجلسة محفوظة', access_code_failed: 'محاولة بكود غير صحيح', access_code_revoked: 'إلغاء كود', access_code_replaced: 'إنشاء كود بديل', access_code_expiry_changed: 'تغيير تاريخ الانتهاء', access_code_expired: 'انتهاء صلاحية كود', access_code_signed_out: 'خروج من جهاز', access_code_device_limit: 'رفض جهاز إضافي (الحد الأقصى للأجهزة)', access_code_max_devices_changed: 'تغيير الحد الأقصى للأجهزة' } };
+const actName = (a) => (S.lang === 'ar' && ACT.ar[a]) || a.replace(/_/g, ' ');
+async function vRfqStaff(el, ttl) {
+  const { q, revs } = await rfqData(S.params.id); const cur = revs[revs.length - 1];
+  setTitle(ttl, q.company_name + ' · ' + q.project_name, q.rfq_number);
+  const sel = S.params.rev ? revs.find((r) => r.id === S.params.rev) : cur;
+  const trans = { submitted: ['under_review', 'cancelled'], under_review: ['needs_info', 'completed', 'cancelled'], needs_info: ['cancelled'], draft: ['cancelled'] }[q.status] || [];
+  const lab = { under_review: t('toReview'), needs_info: t('askInfo'), completed: t('complete'), cancelled: t('cancelRfq') };
+  const ids = [q.id, ...revs.map((r) => r.id)];
+  const araw = await api.get(`rfq_audit_log?entity_id=in.${inList(ids)}&select=action,created_at,metadata,actor_user_id&order=created_at.desc&limit=40`);
+  const aids = [...new Set(araw.map((a) => a.actor_user_id).filter(Boolean))];
+  const anames = aids.length ? Object.fromEntries((await api.get('rfq_profiles?select=user_id,display_name&user_id=in.' + inList(aids))).map((p) => [p.user_id, p.display_name])) : {};
+  const audit = araw.map((a) => ({ ...a, who: anames[a.actor_user_id] }));
+  el.innerHTML = `<div class="row"><button class="btn sm" data-go="rfqs">← ${esc(t('back'))}</button>${chip(q.status)}<span class="muted small">${esc(prodName(prodById(q.product_id)))}</span></div>
+    <section class="panel">${stepper(q, revs)}</section>
+    <div class="formlayout"><div class="stack">
+      <section class="panel"><div class="panel-head"><h2>${esc(t('revisions'))}</h2><div class="actions row">${revs.map((r) => `<button class="btn sm ${r.id === sel.id ? 'primary' : ''}" data-rev="${esc(r.id)}">R${String(r.revision_no).padStart(2, '0')} · ${esc(t('status.' + r.status))}</button>`).join('')}</div></div>
+        <dl class="kv small"><dt>${esc(t('submittedAt'))}</dt><dd>${esc(fmtDate(sel.submitted_at))}</dd>${sel.info_request_message ? `<dt>${esc(t('infoRequest'))}</dt><dd>${esc(sel.info_request_message)}</dd>` : ''}</dl>
+        ${sel.status !== 'draft' ? `<div class="notice info small">${esc(t('frozen'))}</div>` : ''}
+        ${await answersBlock(sel)}</section></div>
+      <aside class="side"><section class="panel"><h2>${esc(t('staffActions'))}</h2>
+        ${trans.length ? trans.map((s) => s === 'needs_info' ? `<label class="f" for="msg">${esc(t('messageToCustomer'))}<textarea id="msg" placeholder="${esc(S.lang === 'ar' ? 'مثال: يرجى تأكيد الارتفاع الصافي للمبنى' : 'e.g. Please confirm the building clear height')}"></textarea></label><button class="btn" data-to="needs_info">${esc(lab[s])}</button>` : `<button class="btn ${s === 'cancelled' ? 'danger' : 'primary'}" data-to="${s}">${esc(lab[s])}</button>`).join('') : `<p class="muted small">${esc(t('noActions'))}</p>`}
+      </section><section class="panel"><h2>${esc(t('history'))}</h2><div class="stack small">${audit.map((a) => `<div><b>${esc(actName(a.action))}</b>${a.metadata?.to ? ' → ' + chip(a.metadata.to) : ''}<div class="muted">${esc(fmtDate(a.created_at))}${a.who ? ' · ' + esc(a.who) : ''}</div></div>`).join('') || esc(t('noRows'))}</div></section></aside></div>`;
+  el.querySelectorAll('[data-rev]').forEach((b) => b.onclick = () => go('rfq', { id: q.id, rev: b.dataset.rev }));
+  el.querySelectorAll('[data-to]').forEach((b) => b.onclick = async () => {
+    try { const s = b.dataset.to; await api.rpc('rfq_admin_set_status', { p_rfq_id: q.id, p_new_status: s, ...(s === 'needs_info' ? { p_customer_message: $('#msg').value.trim() || null } : {}) }, 'void'); toast(t('statusChanged') + ': ' + t('status.' + s)); go('rfq', { id: q.id }); }
+    catch (er) { toast(errText(er), true); } });
+}
+
+/* ------------------------------------------------------------------ customer views */
+async function vHome(el, ttl) {
+  setTitle(ttl, t('companyPortal'), S.user.company || S.user.name || '');
+  const rows = await loadRfqs();
+  const projs = (await api.get('rfq_projects?select=*,rfq_customers(company_name)&order=created_at')).map((p) => ({ ...p, company_name: p.rfq_customers?.company_name }));
+  const attention = rows.filter((r) => r.status === 'needs_info');
+  el.innerHTML = `${attention.map((r) => `<div class="notice warn"><b>${esc(t('infoRequest'))} · <span class="mono">${esc(r.rfq_number)}</span></b><div class="row"><span>${esc(r.project_name)}</span><button class="btn sm primary" data-go="rfq" data-id="${esc(r.id)}">${esc(t('open'))}</button></div></div>`).join('')}
+    <section class="panel"><div class="panel-head"><h2>${esc(t('myRfqs'))}</h2><div class="actions"><button class="btn primary" data-go="new">+ ${esc(t('startNew'))}</button></div></div>${rfqTable(rows, ['rfq_number', 'product', 'project', 'status', 'updated'])}</section>
+    <section class="panel"><h2>${esc(t('myProjects'))}</h2>${projs.length ? '' : `<div class="notice info">${esc(t('noProjects'))}</div>`}<div class="grid2">${projs.map((p) => `<div class="prod"><span class="code">${esc(p.company_name)}</span><span class="nm">${esc(p.project_name)}</span><span class="alt">${esc(t('type.' + p.project_type))} · ${esc([p.site_city, p.site_country].filter(Boolean).join('، '))}</span></div>`).join('') || `<div class="empty">${esc(t('noRows'))}</div>`}</div></section>`;
+}
+async function vNew(el, ttl) {
+  setTitle(ttl, t('company'), t('startNew'));
+  const projs = await api.get('rfq_projects?select=id,project_name&order=created_at');
+  if (!projs.length) { el.innerHTML = `<div class="notice info">${esc(t('newProjectNote'))}</div>`; return; }
+  el.innerHTML = `<section class="panel"><label class="f" for="np" style="max-width:520px">${esc(t('chooseProject'))}<select id="np">${projs.map((p) => `<option value="${esc(p.id)}">${esc(p.project_name)}</option>`).join('')}</select></label></section>
+    <section class="panel"><div class="panel-head"><h2>${esc(t('chooseProduct'))}</h2><span class="muted small">${S.products.length}</span></div><div class="catalog">
+    ${S.products.map((p) => { const on = ENABLED_PRODUCTS.includes(p.code); return `<article class="prod ${on ? 'on' : ''}"><span class="code">${esc(p.code)}</span><span class="nm">${esc(prodName(p))}</span><span class="alt">${esc(S.lang === 'ar' ? p.name_en : p.name_ar)}</span>
+      <span class="small muted">${p.nfields} ${esc(t('fieldsCount'))} · ${p.nreq} ${esc(t('requiredCount'))}</span>
+      ${on ? `<span class="chip st-completed">${esc(t('available'))}</span>` : `<span class="chip st-needs_info" title="${esc(t('unitsPendingLong'))}">${esc(t('unitsPending'))}</span>`}
+      <div class="foot">${on ? `<button class="btn sm primary" data-start="${esc(p.id)}">${esc(t('startRfq'))}</button>` : ''}<button class="btn sm" data-preview="${esc(p.id)}">${esc(t('previewFields'))}</button></div></article>`; }).join('')}</div>
+    <div class="notice warn small">${esc(t('unitsPendingLong'))}</div></section>`;
+  el.querySelectorAll('[data-start]').forEach((b) => b.onclick = async () => { b.disabled = true; try { const id = await api.rpc('rfq_create_draft', { p_project_id: $('#np').value, p_product_id: b.dataset.start }); toast(t('rfqCreated')); go('form', { id }); } catch (er) { b.disabled = false; toast(errText(er), true); } });
+  el.querySelectorAll('[data-preview]').forEach((b) => b.onclick = async () => { const p = prodById(b.dataset.preview); const fs = await loadFields(p.id); const secs = [...new Set(fs.map((f) => f.section))];
+    dialog(`<div class="panel-head"><h2>${esc(t('fieldsOf'))} ${esc(prodName(p))}</h2><div class="actions"><button class="btn sm" data-close>${esc(t('close'))}</button></div></div>${ENABLED_PRODUCTS.includes(p.code) ? '' : `<div class="notice warn small">${esc(t('unitsPendingLong'))}</div>`}
+      ${secs.map((s) => `<div class="stack"><div class="eyebrow">${esc(secName(s))}</div>${fs.filter((f) => f.section === s).map((f) => `<div class="row small"><span>${esc(pick(f, 'label_en', 'label_ar'))}</span>${reqTag(f.requirement)}${['number', 'number_range'].includes(f.data_type) ? `<span class="tag">${esc(f.data_type)}${f.unit ? ' · ' + esc(f.unit) : ''}</span>` : ''}</div>`).join('')}</div>`).join('')}`); });
+}
+async function vRfqCustomer(el, ttl) {
+  const { q, revs } = await rfqData(S.params.id); const cur = revs[revs.length - 1];
+  if (cur.status === 'draft' && !S.params.rev && q.status === 'draft') return go('form', { id: q.id });
+  setTitle(ttl, q.project_name, q.rfq_number);
+  const sel = S.params.rev ? revs.find((r) => r.id === S.params.rev) : cur;
+  const ask = [...revs].reverse().find((r) => r.info_request_message);
+  el.innerHTML = `<div class="row"><button class="btn sm" data-go="home">← ${esc(t('back'))}</button>${chip(q.status)}<span class="muted small">${esc(prodName(prodById(q.product_id)))}</span></div>
+    <section class="panel">${stepper(q, revs)}</section>
+    ${q.status === 'needs_info' && ask ? `<div class="notice warn"><b>${esc(t('infoRequest'))}</b><span>${esc(ask.info_request_message)}</span><div class="row"><button class="btn primary" id="mkrev">${esc(t('prepareRevision'))}</button></div></div>` : ''}
+    ${cur.status === 'draft' && q.status === 'draft' ? `<div class="notice info"><div class="row"><span>${esc(t('draftNote'))}</span><button class="btn primary" data-go="form" data-id="${esc(q.id)}">${esc(t('continueEdit'))}</button></div></div>` : ''}
+    <section class="panel"><div class="panel-head"><h2>${esc(t('revisions'))}</h2><div class="actions row">${revs.map((r) => `<button class="btn sm ${r.id === sel.id ? 'primary' : ''}" data-rev="${esc(r.id)}">R${String(r.revision_no).padStart(2, '0')} · ${esc(t('status.' + r.status))}</button>`).join('')}</div></div>
+      <dl class="kv small"><dt>${esc(t('submittedAt'))}</dt><dd>${esc(fmtDate(sel.submitted_at))}</dd></dl>${sel.status !== 'draft' ? `<div class="notice info small">${esc(t('frozen'))}</div>` : ''}${await answersBlock(sel)}</section>`;
+  el.querySelectorAll('[data-rev]').forEach((b) => b.onclick = () => go('rfq', { id: q.id, rev: b.dataset.rev }));
+  const mk = $('#mkrev'); if (mk) mk.onclick = async () => { mk.disabled = true; try { await api.rpc('rfq_create_revision', { p_rfq_id: q.id }); toast(t('revisionCreated')); go('form', { id: q.id }); } catch (er) { mk.disabled = false; toast(errText(er), true); } };
+}
+async function vForm(el, ttl) {
+  const { q, revs } = await rfqData(S.params.id); const rev = revs[revs.length - 1];
+  if (rev.status !== 'draft') return go('rfq', { id: q.id });
+  setTitle(ttl, q.project_name + ' · R' + String(rev.revision_no).padStart(2, '0'), q.rfq_number);
+  const it = (await api.get(`rfq_revision_equipment?revision_id=eq.${rev.id}&select=id,product_id&order=item_no&limit=1`))[0];
+  const fields = (await loadFields(it.product_id)).filter((f) => f.requirement !== 'engineering');
+  const ans = await api.get(`rfq_answers?revision_equipment_id=eq.${it.id}&select=field_id,value_json`); const A = Object.fromEntries(ans.map((a) => [a.field_id, a.value_json]));
+  const proj = (await api.get(`rfq_projects?id=eq.${q.project_id}&select=*`))[0];
+  const secs = [...new Set(fields.map((f) => f.section))]; const prior = revs.length > 1 ? revs[revs.length - 2] : null;
+  const input = (f) => {
+    const v = A[f.id]; const id = 'fld-' + f.id; const nk = v && typeof v === 'object' && v.status === 'not_known';
+    if (['number', 'number_range'].includes(f.data_type)) return `<input id="${id}" type="text" disabled placeholder="${esc(f.unit || '')}"><div class="help">🔒 ${esc(t('numLocked'))}</div>`;
+    if (f.data_type === 'file') return `<input id="${id}" type="text" disabled><div class="help">🔒 ${esc(t('fileLocked'))}</div>`;
+    let h = '';
+    const optLabel = (o) => S.lang === 'ar' ? (o.ar || o.en) : o.en;
+    if (f.data_type === 'text') h = `<input id="${id}" type="text" data-f="${f.id}" data-k="text" value="${esc(typeof v === 'string' ? v : '')}">`;
+    else if (f.data_type === 'textarea') h = `<textarea id="${id}" data-f="${f.id}" data-k="text">${esc(typeof v === 'string' ? v : '')}</textarea>`;
+    else if (f.data_type === 'boolean') h = `<div class="opts">${[[true, t('yes')], [false, t('no')]].map(([b, l]) => `<label><input type="radio" name="${id}" data-f="${f.id}" data-k="bool" value="${b}" ${v === b ? 'checked' : ''}> ${esc(l)}</label>`).join('')}</div>`;
+    else if (f.data_type === 'select') { const cur = v && typeof v === 'object' ? v.value : v; const curOpt = (f.options_json || []).find((o) => o.value === cur);
+      h = `<select id="${id}" data-f="${f.id}" data-k="select"><option value="">—</option>${(f.options_json || []).map((o) => `<option value="${esc(o.value)}" ${o.value === cur ? 'selected' : ''}>${esc(optLabel(o))}</option>`).join('')}</select>
+        <input type="text" id="${id}-tx" data-f="${f.id}" data-k="seltext" placeholder="${esc(t('otherText'))}" value="${esc(v && typeof v === 'object' ? v.text || '' : '')}" ${curOpt?.text ? '' : 'hidden'}>`; }
+    else if (f.data_type === 'multiselect') { const arr = (Array.isArray(v) ? v : []).map((x) => typeof x === 'object' ? x.value : x);
+      h = `<div class="opts" id="${id}">${(f.options_json || []).map((o) => `<label><input type="checkbox" data-f="${f.id}" data-k="multi" value="${esc(o.value)}" ${arr.includes(o.value) ? 'checked' : ''}> ${esc(optLabel(o))}</label>`).join('')}</div>`; }
+    else h = `<input id="${id}" type="text" data-f="${f.id}" data-k="text" value="${esc(typeof v === 'string' ? v : '')}">`;
+    if (f.allow_not_known) h += `<label class="small"><input type="checkbox" data-f="${f.id}" data-k="nk" ${nk ? 'checked' : ''}> ${esc(t('notKnown'))}</label>`;
+    return h;
+  };
+  const answered = () => fields.filter((f) => A[f.id] !== undefined && A[f.id] !== null).length;
+  el.innerHTML = `<div class="row"><button class="btn sm" data-go="home">← ${esc(t('back'))}</button>${chip('draft')}<span class="muted small">${esc(prodName(prodById(it.product_id)))}</span><span class="muted small">· ${esc(t('draftNote'))}</span></div>
+    ${prior?.info_request_message ? `<div class="notice warn"><b>${esc(t('infoRequest'))}</b><span>${esc(prior.info_request_message)}</span></div>` : ''}
+    <div class="formlayout"><div class="stack">
+      <section class="panel" id="sec-project"><div class="panel-head"><h2>${esc(t('projectDetails'))}</h2></div>
+        <form id="prf" class="grid2" novalidate>
+        ${[['contact_name', 'contactName'], ['contact_email', 'contactEmail'], ['contact_phone', 'contactPhone'], ['customer_reference', 'customerRef'], ['site_country', 'siteCountry'], ['site_city', 'siteCity'], ['site_address', 'siteAddress']].map(([k, l]) => `<label class="f" for="pj-${k}">${esc(t(l))}<input id="pj-${k}" type="${k === 'contact_email' ? 'email' : 'text'}" value="${esc(proj[k] || '')}"></label>`).join('')}
+        <label class="f" for="pj-project_type">${esc(t('projectType'))}<select id="pj-project_type">${PTYPES.map((x) => `<option value="${x}" ${proj.project_type === x ? 'selected' : ''}>${esc(t('type.' + x))}</option>`).join('')}</select></label>
+        <label class="f" for="pj-site_status">${esc(t('siteStatus'))}<select id="pj-site_status"><option value="">—</option>${SITES.map((x) => `<option value="${x}" ${proj.site_status === x ? 'selected' : ''}>${esc(t('siteSt.' + x))}</option>`).join('')}</select></label>
+        <label class="f" for="pj-requested_delivery">${esc(t('delivery'))}<input id="pj-requested_delivery" type="date" value="${esc(proj.requested_delivery || '')}"></label>
+        <div class="row" style="align-self:end"><button class="btn">${esc(t('saveProject'))}</button></div></form></section>
+      ${secs.map((s, si) => `<section class="panel" id="sec-${si}"><h2>${esc(secName(s))}</h2><div class="fieldset">${fields.filter((f) => f.section === s).map((f) => `<div class="field" id="wrap-${f.field_key}">
+        <label class="lbl" for="fld-${f.id}">${esc(pick(f, 'label_en', 'label_ar'))} ${reqTag(f.requirement)}</label>${pick(f, 'help_en', 'help_ar') ? `<div class="help">${esc(pick(f, 'help_en', 'help_ar'))}</div>` : ''}
+        ${input(f)}<div class="state" id="st-${f.id}" aria-live="polite"></div></div>`).join('')}</div></section>`).join('')}
+    </div>
+    <aside class="side">
+      <section class="panel"><h3>${esc(t('progress'))}</h3><div class="bar"><i id="pbar" style="width:${Math.round(answered() / fields.length * 100)}%"></i></div><div class="small muted" id="pnum">${answered()} / ${fields.length}</div>
+        <nav class="stack small"><a href="#" data-jump="sec-project">${esc(t('projectDetails'))}</a>${secs.map((s, i) => `<a href="#" data-jump="sec-${i}">${esc(secName(s))}</a>`).join('')}</nav></section>
+      <section class="panel"><div class="panel-head"><h3>${esc(t('checkResult'))}</h3><div class="actions"><button class="btn sm" id="chk">${esc(t('check'))}</button></div></div><div id="issues" class="issues"><span class="muted small">—</span></div></section>
+      <section class="panel"><label class="small row" style="align-items:flex-start;flex-wrap:nowrap"><input type="checkbox" id="decl"> <span>${esc(t('declaration'))}</span></label>
+        <label class="small row" style="align-items:flex-start;flex-wrap:nowrap"><input type="checkbox" id="ackw"> <span>${esc(t('ackWarnings'))}</span></label>
+        <button class="btn primary" id="sub">${esc(t('submit'))}</button><div id="suberr" class="small" style="color:var(--bad)" role="alert"></div></section>
+    </aside></div>`;
+  // autosave
+  const timers = {};
+  const setState = (fid, cls, txt) => { const s = $('#st-' + fid); if (s) { s.className = 'state ' + cls; s.textContent = txt; } };
+  const valueOf = (fid) => {
+    const f = fields.find((x) => x.id === fid); const nk = el.querySelector(`[data-f="${fid}"][data-k="nk"]`);
+    if (nk && nk.checked) return { status: 'not_known' };
+    if (f.data_type === 'boolean') { const r = el.querySelector(`[data-f="${fid}"][data-k="bool"]:checked`); return r ? r.value === 'true' : null; }
+    if (f.data_type === 'select') { const sv = $('#fld-' + fid).value; const o = (f.options_json || []).find((x) => x.value === sv); const tx = $('#fld-' + fid + '-tx');
+      tx.hidden = !o?.text; if (!sv) return null; return o?.text && tx.value.trim() ? { value: sv, text: tx.value.trim() } : sv; }
+    if (f.data_type === 'multiselect') { const a = [...el.querySelectorAll(`[data-f="${fid}"][data-k="multi"]:checked`)].map((x) => x.value); return a.length ? a : null; }
+    return $('#fld-' + fid).value;
+  };
+  const save = async (fid) => {
+    const v = valueOf(fid); setState(fid, 'busy', t('saving'));
+    try { await api.rpc('rfq_upsert_answer', { p_revision_equipment_id: it.id, p_field_id: fid, p_value: jsonArg(v === '' ? null : v) }, 'void');
+      if (v === null || v === '' || (Array.isArray(v) && !v.length)) delete A[fid]; else A[fid] = v; setState(fid, 'ok', '✓ ' + t('saved'));
+      $('#pbar').style.width = Math.round(answered() / fields.length * 100) + '%'; $('#pnum').textContent = answered() + ' / ' + fields.length; }
+    catch (er) { setState(fid, 'bad', errText(er)); }
+  };
+  el.querySelectorAll('[data-f]').forEach((inp) => {
+    const fid = inp.dataset.f; const k = inp.dataset.k;
+    if (k === 'text' || k === 'seltext') { inp.addEventListener('input', () => { clearTimeout(timers[fid]); setState(fid, 'busy', '…'); timers[fid] = setTimeout(() => save(fid), 700); }); inp.addEventListener('blur', () => { if (timers[fid]) { clearTimeout(timers[fid]); timers[fid] = null; save(fid); } }); }
+    else inp.addEventListener('change', () => save(fid));
+  });
+  el.querySelectorAll('[data-jump]').forEach((a) => a.onclick = (e) => { e.preventDefault(); $('#' + a.dataset.jump)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  $('#prf').onsubmit = async (e) => { e.preventDefault();
+    const keys = ['contact_name', 'contact_email', 'contact_phone', 'customer_reference', 'site_country', 'site_city', 'site_address', 'project_type', 'site_status', 'requested_delivery'];
+    const patch = Object.fromEntries(keys.map((k) => [k, $('#pj-' + k).value.trim() || null]));
+    try { await api.rpc('rfq_update_project', { p_project_id: q.project_id, p_patch: jsonArg(patch) }, 'void'); toast(t('projectSaved')); } catch (er) { toast(errText(er), true); } };
+  const check = async () => {
+    const rows = await api.rpc('rfq_validate_revision', { p_revision_id: rev.id }, 'rows'); const box = $('#issues');
+    const errs = rows.filter((r) => r.severity === 'error'); const warns = rows.filter((r) => r.severity !== 'error');
+    box.innerHTML = (!errs.length ? `<div class="notice ok small">${esc(t('allGood'))}</div>` : '') + rows.map((r) => `<button class="issue ${r.severity === 'error' ? 'error' : 'warning'}" data-key="${esc(r.field_key || '')}"><b>${esc(r.severity === 'error' ? t('blocking') : t('warnings'))}</b><span>${esc((S.lang === 'ar' ? r.label_ar || r.label_en : r.label_en) || r.field_key)}</span><span class="muted">${esc(S.catalog[r.code] ? pick(S.catalog[r.code]) : r.code)}</span></button>`).join('');
+    box.querySelectorAll('.issue').forEach((b) => b.onclick = () => { const k = b.dataset.key; const w = k.startsWith('project.') ? $('#sec-project') : $('#wrap-' + k); if (w) { w.scrollIntoView({ behavior: 'smooth', block: 'center' }); w.classList.remove('flash'); void w.offsetWidth; w.classList.add('flash'); } });
+    return { errs, warns };
+  };
+  $('#chk').onclick = () => check().catch((er) => toast(errText(er), true));
+  $('#sub').onclick = async () => { $('#suberr').textContent = '';
+    try { await api.rpc('rfq_submit_revision', { p_revision_id: rev.id, p_customer_declaration: $('#decl').checked, p_acknowledge_warnings: $('#ackw').checked }, 'void'); toast(t('submitted') + ' ✓'); go('rfq', { id: q.id }); }
+    catch (er) { $('#suberr').textContent = errText(er); if (errCode(er) === 'RFQ_VALIDATION_FAILED') check(); } };
+}
+
+boot();
+</script>
+
+</body>
+</html>
