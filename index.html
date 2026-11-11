@@ -227,7 +227,7 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--accent-soft)
    config.json (next to this page) gives the server address and the PUBLIC anon key. No secret is in this page.
    ========================================================================================================= */
 const CFG = { url: '', anon: '', portal: location.href.split('#')[0] };
-const ENABLED_PRODUCTS = ['turnkey'];   // the only product with no required number field (numbers need EMC unit approval, D1/D2)
+const ENABLED_PRODUCTS = { includes: (code) => { const p = (S.products || []).find((x) => x.code === code); return !!p && p.nreqnum === 0; } };  // N-1: was ['turnkey'];   // the only product with no required number field (numbers need EMC unit approval, D1/D2)
 
 /* ------------------------------------------------------------------ i18n */
 const T = {
@@ -435,10 +435,10 @@ function bootRender(err) {
 }
 async function loadCommon() {
   const [cat, prods, flds] = await Promise.all([api.get('rfq_message_catalog?select=code,message_en,message_ar,default_en,default_ar'),
-    api.get('rfq_products?active=is.true&select=id,code,name_en,name_ar,sort_order&order=sort_order'), api.get('rfq_field_definitions?active=is.true&select=product_id,requirement,data_type')]);
+    api.get('rfq_products?active=is.true&select=id,code,name_en,name_ar,sort_order&order=sort_order'), api.get('rfq_field_definitions?active=is.true&select=product_id,requirement,data_type,unit_mode')]);
   for (const r of cat || []) S.catalog[r.code] = { code: r.code, en: r.message_en || r.default_en, ar: r.message_ar || r.default_ar };
   S.products = (prods || []).map((p) => { const fs = (flds || []).filter((f) => f.product_id === p.id);
-    return { ...p, nfields: fs.length, nreq: fs.filter((f) => f.requirement === 'required').length, nreqnum: fs.filter((f) => f.requirement === 'required' && ['number', 'number_range'].includes(f.data_type)).length }; });
+    return { ...p, nfields: fs.length, nreq: fs.filter((f) => f.requirement === 'required').length, nreqnum: fs.filter((f) => f.requirement === 'required' && ['number', 'number_range'].includes(f.data_type) && !f.unit_mode).length }; });
 }
 async function boot() {
   bootRender();
@@ -656,7 +656,7 @@ function rfqTable(rows, cols = ['rfq_number', 'product', 'project', 'company', '
   const cell = (r, c) => ({ rfq_number: `<span class="mono">${esc(r.rfq_number)}</span>`, product: esc(prodName(prodById(r.product_id))), project: esc(r.project_name), company: esc(r.company_name), status: chip(r.status), updated: `<span class="small">${esc(fmtDate(r.updated_at))}</span>` }[c]);
   return `<div class="tablewrap"><table><thead><tr>${cols.map((c) => `<th>${esc(head[c])}</th>`).join('')}</tr></thead><tbody>${rows.map((r) => `<tr class="click" data-go="rfq" data-id="${esc(r.id)}" tabindex="0">${cols.map((c) => `<td>${cell(r, c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
-async function loadFields(productId) { const k = 'f:' + productId; if (!S.cache[k]) S.cache[k] = await api.get(`rfq_field_definitions?product_id=eq.${productId}&active=is.true&select=id,field_key,label_en,label_ar,section,data_type,requirement,help_en,help_ar,options_json,condition_json,allow_not_known,unit,sort_order&order=sort_order`); return S.cache[k]; }
+async function loadFields(productId) { const k = 'f:' + productId; if (!S.cache[k]) S.cache[k] = await api.get(`rfq_field_definitions?product_id=eq.${productId}&active=is.true&select=id,field_key,label_en,label_ar,section,data_type,requirement,help_en,help_ar,options_json,condition_json,allow_not_known,unit,unit_mode,canonical_unit,unit_options,sort_order&order=sort_order`); return S.cache[k]; }
 const secName = (s) => S.lang === 'ar' ? (SECTION_AR[s] || s) : s;
 const reqTag = (r) => ({ required: `<span class="tag req">${esc(t('req'))}</span>`, recommended: `<span class="tag rec">${esc(t('rec'))}</span>`, optional: `<span class="tag">${esc(t('opt'))}</span>`, conditional: `<span class="tag">${esc(t('cond'))}</span>`, engineering: `<span class="tag">${esc(t('eng'))}</span>` }[r] || '');
 function fmtValue(f, v) {
@@ -666,9 +666,14 @@ function fmtValue(f, v) {
   if (f.data_type === 'boolean') return esc(v ? t('yes') : t('no'));
   if (f.data_type === 'select') return typeof v === 'object' ? esc(opt(v.value) + (v.text ? ' — ' + v.text : '')) : esc(opt(v));
   if (f.data_type === 'multiselect') return esc((Array.isArray(v) ? v : []).map((x) => typeof x === 'object' ? opt(x.value) : opt(x)).join('، '));
+  if (['number', 'number_range'].includes(f.data_type) && (typeof v === 'number' || (typeof v === 'object' && ('value' in v || 'min' in v)))) {
+    const u = unitName((typeof v === 'object' && v.unit) || f.canonical_unit || f.unit || '');
+    const n = typeof v === 'number' ? String(v) : 'value' in v ? String(v.value) : `${v.min} – ${v.max}`;
+    return `<span class="answer-ro" dir="ltr">${esc(n + (u ? ' ' + u : ''))}</span>`; }
   if (typeof v === 'object') return `<span class="mono small">${esc(JSON.stringify(v))}</span>`;
   return `<span class="answer-ro">${esc(v)}</span>`;
 }
+function unitName(u) { return S.lang === 'ar' ? ({ m: 'متر', cm: 'سم', kg: 'كجم', g: 'جرام', t: 'طن', min: 'دقيقة', days: 'يوم' }[u] || u || '') : (u || ''); }
 
 /* ------------------------------------------------------------------ staff views */
 async function vOverview(el, ttl) {
@@ -916,7 +921,20 @@ async function vForm(el, ttl) {
   const secs = [...new Set(fields.map((f) => f.section))]; const prior = revs.length > 1 ? revs[revs.length - 2] : null;
   const input = (f) => {
     const v = A[f.id]; const id = 'fld-' + f.id; const nk = v && typeof v === 'object' && v.status === 'not_known';
-    if (['number', 'number_range'].includes(f.data_type)) return `<input id="${id}" type="text" disabled placeholder="${esc(f.unit || '')}"><div class="help">🔒 ${esc(t('numLocked'))}</div>`;
+    if (['number', 'number_range'].includes(f.data_type) && !f.unit_mode) return `<input id="${id}" type="text" disabled placeholder="${esc(f.unit || '')}"><div class="help">🔒 ${esc(t('numLocked'))}</div>`;
+    if (['number', 'number_range'].includes(f.data_type)) {
+      const conv = f.unit_mode !== 'single'; const units = conv ? (f.unit_options || []) : [f.canonical_unit || f.unit];
+      const vv = typeof v === 'number' ? { value: v } : (v && typeof v === 'object' && !nk ? v : {}); const sv = (x) => (x === undefined || x === null ? '' : String(x));
+      const ph = (k) => S.lang === 'ar' ? { min: 'من', max: 'إلى' }[k] : { min: 'from', max: 'to' }[k];
+      let h = f.data_type === 'number_range'
+        ? `<input id="${id}" type="text" inputmode="decimal" dir="ltr" style="max-width:9em" data-f="${f.id}" data-k="nmin" placeholder="${esc(ph('min'))}" value="${esc(sv(vv.min))}"> – <input id="${id}-max" type="text" inputmode="decimal" dir="ltr" style="max-width:9em" data-f="${f.id}" data-k="nmax" placeholder="${esc(ph('max'))}" value="${esc(sv(vv.max))}">`
+        : `<input id="${id}" type="text" inputmode="decimal" dir="ltr" style="max-width:12em" data-f="${f.id}" data-k="num" value="${esc(sv(vv.value))}">`;
+      h += conv ? ` <select data-f="${f.id}" data-k="unit" aria-label="unit" style="max-width:8em"><option value="">${S.lang === 'ar' ? '— الوحدة —' : '— unit —'}</option>${units.map((u) => `<option value="${esc(u)}" ${vv.unit === u ? 'selected' : ''}>${esc(unitName(u))}</option>`).join('')}</select>`
+                : ` <span class="muted" dir="ltr">${esc(unitName(units[0]))}</span>`;
+      h = `<div class="row" style="flex-wrap:nowrap;align-items:center;gap:6px">${h}</div>`;
+      if (f.allow_not_known) h += `<label class="small"><input type="checkbox" data-f="${f.id}" data-k="nk" ${nk ? 'checked' : ''}> ${esc(t('notKnown'))}</label>`;
+      return h;
+    }
     if (f.data_type === 'file') return `<input id="${id}" type="text" disabled><div class="help">🔒 ${esc(t('fileLocked'))}</div>`;
     let h = '';
     const optLabel = (o) => S.lang === 'ar' ? (o.ar || o.en) : o.en;
@@ -965,10 +983,20 @@ async function vForm(el, ttl) {
     if (f.data_type === 'select') { const sv = $('#fld-' + fid).value; const o = (f.options_json || []).find((x) => x.value === sv); const tx = $('#fld-' + fid + '-tx');
       tx.hidden = !o?.text; if (!sv) return null; return o?.text && tx.value.trim() ? { value: sv, text: tx.value.trim() } : sv; }
     if (f.data_type === 'multiselect') { const a = [...el.querySelectorAll(`[data-f="${fid}"][data-k="multi"]:checked`)].map((x) => x.value); return a.length ? a : null; }
+    if (['number', 'number_range'].includes(f.data_type) && f.unit_mode) {
+      const q = (k) => el.querySelector(`[data-f="${fid}"][data-k="${k}"]`);
+      const num = (x) => { const s = (x ? x.value : '').trim().replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[٫,]/g, '.'); if (s === '') return null; return /^[-+]?\d+(\.\d+)?$/.test(s) ? Number(s) : NaN; };
+      const conv = f.unit_mode !== 'single'; const unit = conv ? q('unit').value : null; let o;
+      if (f.data_type === 'number_range') { const a = num(q('nmin')), b = num(q('nmax')); if (a === null && b === null) return null;
+        if (a === null || b === null || Number.isNaN(a) || Number.isNaN(b)) return undefined; o = { min: a, max: b }; }
+      else { const a = num(q('num')); if (a === null) return null; if (Number.isNaN(a)) return undefined; o = conv ? { value: a } : a; }
+      if (conv) { if (!unit) return undefined; o.unit = unit; }
+      return o;
+    }
     return $('#fld-' + fid).value;
   };
   const save = async (fid) => {
-    const v = valueOf(fid); setState(fid, 'busy', t('saving'));
+    const v = valueOf(fid); if (v === undefined) { setState(fid, 'bad', S.lang === 'ar' ? 'اكتب رقم صحيح (والرقمين في المدى) واختار الوحدة.' : 'Enter a valid number (both numbers for a range) and choose the unit.'); return; } setState(fid, 'busy', t('saving'));
     try { await api.rpc('rfq_upsert_answer', { p_revision_equipment_id: it.id, p_field_id: fid, p_value: jsonArg(v === '' ? null : v) }, 'void');
       if (v === null || v === '' || (Array.isArray(v) && !v.length)) delete A[fid]; else A[fid] = v; setState(fid, 'ok', '✓ ' + t('saved'));
       $('#pbar').style.width = Math.round(answered() / fields.length * 100) + '%'; $('#pnum').textContent = answered() + ' / ' + fields.length; }
@@ -976,7 +1004,7 @@ async function vForm(el, ttl) {
   };
   el.querySelectorAll('[data-f]').forEach((inp) => {
     const fid = inp.dataset.f; const k = inp.dataset.k;
-    if (k === 'text' || k === 'seltext') { inp.addEventListener('input', () => { clearTimeout(timers[fid]); setState(fid, 'busy', '…'); timers[fid] = setTimeout(() => save(fid), 700); }); inp.addEventListener('blur', () => { if (timers[fid]) { clearTimeout(timers[fid]); timers[fid] = null; save(fid); } }); }
+    if (['text', 'seltext', 'num', 'nmin', 'nmax'].includes(k)) { inp.addEventListener('input', () => { clearTimeout(timers[fid]); setState(fid, 'busy', '…'); timers[fid] = setTimeout(() => save(fid), 700); }); inp.addEventListener('blur', () => { if (timers[fid]) { clearTimeout(timers[fid]); timers[fid] = null; save(fid); } }); }
     else inp.addEventListener('change', () => save(fid));
   });
   el.querySelectorAll('[data-jump]').forEach((a) => a.onclick = (e) => { e.preventDefault(); $('#' + a.dataset.jump)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
